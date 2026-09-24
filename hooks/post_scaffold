@@ -1,0 +1,27 @@
+#!/bin/sh
+set -eu
+
+# Escape apostrophes before placing template values in shell string literals.
+project_dir='./{{ .Project | replace "\u0027" "\u0027\"\u0027\"\u0027" }}'
+ui_dir="$project_dir/"'{{ .Computed.ui_final }}'
+
+if [ ! -d "$ui_dir" ]; then
+  printf 'Selected UI template is missing: %s\n' "$ui_dir" >&2
+  exit 1
+fi
+
+# Check every destination before moving anything, including hidden files.
+for source in "$ui_dir"/* "$ui_dir"/.[!.]* "$ui_dir"/..?*; do
+  [ -e "$source" ] || [ -L "$source" ] || continue
+  target="$project_dir/${source##*/}"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    printf 'Cannot initialize project: destination already exists: %s\n' "$target" >&2
+    exit 1
+  fi
+done
+
+for source in "$ui_dir"/* "$ui_dir"/.[!.]* "$ui_dir"/..?*; do
+  [ -e "$source" ] || [ -L "$source" ] || continue
+  mv "$source" "$project_dir/"
+done
+rmdir "$ui_dir"

@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=https://hay-kot.github.io/scaffold/schema.json
+messages:
+  pre: |
+    # Go-Cinch PC Admin Generator
+    Generate the Vue 3 + Ant Design Vue admin connected to chi-auth-layout.
+  post: |
+    # Project Created: {{ .Scaffold.Project }}
+    UI: {{ .Computed.ui_final }}
+
+    Next steps:
+      cd {{ .Scaffold.Project }}
+      pnpm install --frozen-lockfile
+      AUTH_PROXY_TARGET=http://127.0.0.1:8080 pnpm dev
+
+    Browser API base: /api/auth
+
+questions:
+  - name: ui
+    prompt:
+      message: Admin UI?
+      type: select
+      options: [vben-antd-vue3]
+      default: vben-antd-vue3
+
+  - name: VITE_GLOB_API_URL
+    prompt:
+      message: Production API URL?
+      default: https://entry.go-cinch.top/api/auth
+
+  - name: VITE_GLOB_AUTH_API_URL
+    prompt:
+      message: Production auth API URL?
+      default: https://entry.go-cinch.top/api/auth
+
+computed:
+  # Native template errors reject invalid CLI values before writing any files.
+  ui_final: '{{ $ui := or .Scaffold.ui "vben-antd-vue3" }}{{ if or (eq $ui "vben-antd-vue3") (eq $ui "vben") }}vben-antd-vue3{{ else }}{{ template "ui must be vben-antd-vue3 (alias vben)" . }}{{ end }}'
+
+# Keep Vue {{ expressions }} and embedded template strings intact.
+# Only [[scaffold ... scaffold]] is interpreted as Scaffold syntax in file contents.
+delimiters:
+  - glob: '**/*'
+    left: '[[scaffold'
+    right: 'scaffold]]'
+
+features:
+  - value: '{{ eq .Computed.ui_final "vben-antd-vue3" }}'
+    globs: ['**/vben-antd-vue3/**']
+  # Exclude installed dependencies and local artifacts even if they exist locally.
+  - value: 'false'
+    globs:
+      - '**/node_modules/**'
+      - '**/.pnpm-store/**'
+      - '**/.yarn/**'
+      - '**/dist/**'
+      - '**/dist-ssr/**'
+      - '**/dev-dist/**'
+      - '**/dist.zip'
+      - '**/dist.tar'
+      - '**/dist.war'
+      - '**/*-dist.zip'
+      - '**/.turbo/**'
+      - '**/.cache/**'
+      - '**/.vite/**'
+      - '**/.nitro/**'
+      - '**/.output/**'
+      - '**/coverage/**'
+      - '**/__pycache__/**'
+      - '**/.git/**'
+      - '**/.DS_Store'
+      - '**/*.log'
+      - '**/*.local'
+      - '**/.eslintcache'
+      - '**/.stylelintcache'
+
+presets:
+  full:
+    ui: vben-antd-vue3
+  vben-antd-vue3:
+    ui: vben-antd-vue3
+  vben:
+    ui: vben-antd-vue3
