@@ -2,15 +2,15 @@
 messages:
   pre: |
     # Go-Cinch PC Admin Generator
-    Generate the Vue 3 + Ant Design Vue admin connected to chi-auth-layout.
+    Generate an admin frontend connected to chi-auth-layout.
   post: |
     # Project Created: {{ .Scaffold.Project }}
     UI: {{ .Computed.ui_final }}
 
     Next steps:
       cd {{ .Scaffold.Project }}
-      pnpm install --frozen-lockfile
-      AUTH_PROXY_TARGET=http://127.0.0.1:8080 pnpm dev
+      install dependencies with the generated project's locked package manager
+      start the generated project's development server
 
     Browser API base: /api/auth
 
@@ -19,7 +19,7 @@ questions:
     prompt:
       message: Admin UI?
       type: select
-      options: [vben-antd-vue3]
+      options: [vben-antd-vue3, tail-react, art-eleplus-vue3, shadcn-react]
       default: vben-antd-vue3
 
   - name: VITE_GLOB_API_URL
@@ -34,7 +34,7 @@ questions:
 
 computed:
   # Native template errors reject invalid CLI values before writing any files.
-  ui_final: '{{ $ui := or .Scaffold.ui "vben-antd-vue3" }}{{ if or (eq $ui "vben-antd-vue3") (eq $ui "vben") }}vben-antd-vue3{{ else }}{{ template "ui must be vben-antd-vue3 (alias vben)" . }}{{ end }}'
+  ui_final: '{{ $ui := or .Scaffold.ui "vben-antd-vue3" }}{{ if or (eq $ui "vben-antd-vue3") (eq $ui "vben") }}vben-antd-vue3{{ else if or (eq $ui "tail-react") (eq $ui "tail") }}tail-react{{ else if or (eq $ui "art-eleplus-vue3") (eq $ui "art") }}art-eleplus-vue3{{ else if or (eq $ui "shadcn-react") (eq $ui "shadcn") }}shadcn-react{{ else }}{{ template "ui must be vben-antd-vue3 (alias vben), tail-react (alias tail), art-eleplus-vue3 (alias art), or shadcn-react (alias shadcn)" . }}{{ end }}'
 
 # Keep Vue {{ expressions }} and embedded template strings intact.
 # Only [[scaffold ... scaffold]] is interpreted as Scaffold syntax in file contents.
@@ -46,6 +46,12 @@ delimiters:
 features:
   - value: '{{ eq .Computed.ui_final "vben-antd-vue3" }}'
     globs: ['**/vben-antd-vue3/**']
+  - value: '{{ eq .Computed.ui_final "tail-react" }}'
+    globs: ['**/tail-react/**']
+  - value: '{{ eq .Computed.ui_final "art-eleplus-vue3" }}'
+    globs: ['**/art-eleplus-vue3/**']
+  - value: '{{ eq .Computed.ui_final "shadcn-react" }}'
+    globs: ['**/shadcn-react/**']
   # Exclude installed dependencies and local artifacts even if they exist locally.
   - value: 'false'
     globs:
@@ -64,12 +70,16 @@ features:
       - '**/.vite/**'
       - '**/.nitro/**'
       - '**/.output/**'
+      - '**/.next/**'
+      - '**/out/**'
+      - '**/build/**'
       - '**/coverage/**'
       - '**/__pycache__/**'
       - '**/.git/**'
       - '**/.DS_Store'
       - '**/*.log'
       - '**/*.local'
+      - '**/*.tsbuildinfo'
       - '**/.eslintcache'
       - '**/.stylelintcache'
 
@@ -80,3 +90,15 @@ presets:
     ui: vben-antd-vue3
   vben:
     ui: vben-antd-vue3
+  tail-react:
+    ui: tail-react
+  tail:
+    ui: tail-react
+  art-eleplus-vue3:
+    ui: art-eleplus-vue3
+  art:
+    ui: art-eleplus-vue3
+  shadcn-react:
+    ui: shadcn-react
+  shadcn:
+    ui: shadcn-react

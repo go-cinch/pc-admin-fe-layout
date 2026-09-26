@@ -6,8 +6,10 @@ parameters, `{{ .Project }}/<ui>` contains each UI template, and the Makefile
 provides generation and validation commands.
 
 The default UI is **`vben-antd-vue3`**: Vben Admin, Vue 3, and Ant Design Vue 4.
-`vben` is an alias that generates the same project. Other UI values are currently
-rejected.
+The additional **`tail-react`** option uses TailAdmin, React 19, Vite, and
+Tailwind CSS 4. **`art-eleplus-vue3`** uses Art Design Pro, Vue 3, and
+Element Plus. **`shadcn-react`** uses Next.js 16, React 19, and shadcn/ui.
+`vben`, `tail`, `art`, and `shadcn` are aliases for those options.
 
 ## Generate a Project
 
@@ -21,6 +23,12 @@ cd pc-admin-fe-layout
 make full PROJECT=my-admin
 # Equivalent explicit UI selection with a custom output directory
 make full PROJECT=my-admin UI=vben-antd-vue3 OUTPUT_DIR=/path/to/projects
+# Generate the React option (npm lockfile retained)
+make full PROJECT=my-admin UI=tail-react OUTPUT_DIR=/path/to/projects
+# Generate the Art Design Pro option (pnpm lockfile retained)
+make full PROJECT=my-admin UI=art-eleplus-vue3 OUTPUT_DIR=/path/to/projects
+# Generate the shadcn/ui option (Bun lockfile retained)
+make full PROJECT=my-admin UI=shadcn-react OUTPUT_DIR=/path/to/projects
 # Supported alias
 make full PROJECT=my-admin UI=vben
 # Override production API URLs
@@ -49,20 +57,26 @@ selected UI's contents into the project root and removes the empty UI directory.
 `make full` enables this automatically. Disabling hooks leaves the intermediate
 UI directory in place.
 
-`VITE_GLOB_API_URL` and `VITE_GLOB_AUTH_API_URL` configure the generated
-`.env.production`. Both default to `https://entry.go-cinch.top/api/auth` and can
-be overridden independently through Scaffold or the matching Make variables.
+Every UI uses the same `VITE_GLOB_API_URL` and `VITE_GLOB_AUTH_API_URL` names in
+its generated `.env.production`. Both default to
+`https://entry.go-cinch.top/api/auth` and can be overridden independently
+through Scaffold or the matching Make variables.
 
 ```bash
 cd ../my-admin
-pnpm install --frozen-lockfile
-AUTH_PROXY_TARGET=http://127.0.0.1:8080 pnpm dev
-pnpm check:type
-pnpm build
+# Vben
+pnpm install --frozen-lockfile && pnpm check:type && pnpm build
+# Tail React
+npm ci && npm run lint && npm run build
+# Art Design Pro
+pnpm install --frozen-lockfile && pnpm lint && pnpm build
+# shadcn/ui
+bun install --frozen-lockfile && bun run lint && bun run typecheck && bun run build
 ```
 
-Set `AUTH_PROXY_TARGET` to your backend service URL. You can also define it in
-`apps/web-antd/.env.development.local`. When unset, Vite does not enable the auth
+Set `AUTH_PROXY_TARGET` to your backend service URL. For Vben, define it in
+`apps/web-antd/.env.development.local`; for the other UIs, use the root
+`.env.development.local`. When unset, the Vite-based UIs do not enable the auth
 proxy, allowing an external gateway to serve `/api/auth`.
 
 ## Template Contents
@@ -79,6 +93,21 @@ Each UI has its own directory, including its dependency manifests and lockfile:
     package.json
     pnpm-workspace.yaml
     pnpm-lock.yaml
+  tail-react/
+    src/
+    public/
+    package.json
+    package-lock.json
+  art-eleplus-vue3/
+    src/
+    public/
+    package.json
+    pnpm-lock.yaml
+  shadcn-react/
+    src/
+    public/
+    package.json
+    bun.lock
 ```
 
 UI directories organize the template repository only. Selecting `vben-antd-vue3`
@@ -96,13 +125,13 @@ my-admin/
   pnpm-lock.yaml
 ```
 
-Run pnpm commands from `my-admin/`. The shared post-generation hook uses the
-selected UI name, so future UI templates follow the same output structure.
+Run the selected package manager from `my-admin/`. The shared post-generation
+hook uses the selected UI name, so every option has the same flat output shape.
 
-The template was copied from the local `vben-admin` working tree. It includes
+The maintained templates include
 login, captchas, registration, token refresh, password reset, profile settings,
-and system management pages, together with the shared package changes required
-by these features.
+and system management pages. Their original license and framework-native visual
+systems are retained.
 
 It retains Vben's pnpm monorepo structure and generates only the
 `apps/web-antd` UI application. Other UI applications, backend-mock, playground,
@@ -114,10 +143,11 @@ packages such as `node_modules`, package manager caches, or build outputs.
 Both `.gitignore` and Scaffold exclusion rules cover these artifacts. Users
 install dependencies after generation with `pnpm install --frozen-lockfile`.
 
-The root commands `pnpm dev`, `pnpm build`, `pnpm preview`, and `pnpm check:type`
-target `@vben/web-antd` by default. The project package name and browser cache
-namespace are derived from the generated project name. The store encryption key
-is randomly initialized for each generated project.
+Vben uses pnpm and retains its monorepo commands. Tail React uses npm and the
+`dev`, `lint`, `build`, and `preview` scripts in its generated `package.json`.
+Art Design Pro uses pnpm and its native Vue/Vite scripts. shadcn-react uses Bun
+and its native Next.js scripts. Generated package
+names are derived from the project name.
 
 ## Auth URLs and Reverse Proxy
 

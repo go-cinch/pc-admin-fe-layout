@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise Scaffold's real output, including literal Vue syntax and binary assets."""
+"""Exercise every Scaffold UI's real flattened output and binary assets."""
 import json
 import os
 import shutil
@@ -8,13 +8,16 @@ import subprocess
 import tempfile
 
 LAYOUT = Path(__file__).resolve().parents[1]
-TEMPLATE = LAYOUT / '{{ .Project }}' / 'vben-antd-vue3'
+VBEN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'vben-antd-vue3'
+TAIL_TEMPLATE = LAYOUT / '{{ .Project }}' / 'tail-react'
+ART_TEMPLATE = LAYOUT / '{{ .Project }}' / 'art-eleplus-vue3'
+SHADCN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'shadcn-react'
 SCAFFOLD = os.environ.get('SCAFFOLD', 'scaffold')
 DEFAULT_PRODUCTION_API_URL = 'https://entry.go-cinch.top/api/auth'
 ARTIFACT_NAMES = {
-    '.cache', '.git', '.nitro', '.output', '.pnpm-store', '.stylelintcache',
+    '.cache', '.git', '.next', '.nitro', '.output', '.pnpm-store', '.stylelintcache',
     '.turbo', '.vite', '.yarn', '__pycache__', 'coverage', 'dist',
-    'node_modules',
+    'build', 'node_modules', 'out',
 }
 
 
@@ -25,8 +28,35 @@ def run(args, success=True):
     return result
 
 
-def validate(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
-             production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+def assert_artifacts_excluded(project):
+    for path in project.rglob('*'):
+        assert path.name not in ARTIFACT_NAMES | {'.DS_Store'}
+        assert not path.name.endswith(('.log', '.local'))
+
+
+def assert_template_integrity(template, project):
+    for source in template.rglob('*'):
+        if not source.is_file():
+            continue
+        relative = source.relative_to(template)
+        if any(part in ARTIFACT_NAMES for part in relative.parts):
+            continue
+        if relative.name == '.DS_Store' or relative.name.endswith(('.log', '.local')):
+            continue
+        output = project / relative
+        data = source.read_bytes()
+        # Scaffold intentionally drops truly empty source files.
+        if not data:
+            continue
+        assert output.is_file(), relative
+        if b'[[scaffold' not in data:
+            assert output.read_bytes() == data, relative
+        else:
+            assert b'[[scaffold' not in output.read_bytes(), relative
+
+
+def validate_vben(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
+                  production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
     project = project_root
     assert not (project / 'vben-antd-vue3').exists()
     assert not (project / 'vben').exists()
@@ -36,9 +66,7 @@ def validate(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert package['name'] == project_root.name
     assert sorted(p.name for p in (project / 'apps').iterdir()) == ['web-antd']
     assert not any((project / x).exists() for x in ['node_modules', '.git', 'docs', 'playground'])
-    for path in project.rglob('*'):
-        assert path.name not in ARTIFACT_NAMES | {'.DS_Store'}
-        assert not path.name.endswith(('.log', '.local'))
+    assert_artifacts_excluded(project)
     env = (project / 'apps/web-antd/.env').read_text()
     assert f'VITE_APP_NAMESPACE={project_root.name}\n' in env
     key = env.split('VITE_APP_STORE_SECURE_KEY=')[1].splitlines()[0]
@@ -67,26 +95,97 @@ def validate(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
     config = (project / 'apps/web-antd/vite.config.ts').read_text()
     assert 'AUTH_PROXY_TARGET' in config and 'http://127.0.0.1' not in config
     assert 'nitroMock: false' in config
-    # Every unparameterized file must survive byte-for-byte (Vue, PNG, ICO, etc.).
-    for source in TEMPLATE.rglob('*'):
-        if not source.is_file():
-            continue
-        relative = source.relative_to(TEMPLATE)
-        if any(part in ARTIFACT_NAMES for part in relative.parts):
-            continue
-        if relative.name == '.DS_Store' or relative.name.endswith(('.log', '.local')):
-            continue
-        output = project / relative
-        data = source.read_bytes()
-        # Scaffold intentionally drops truly empty source files.
-        if not data:
-            continue
-        assert output.is_file(), relative
-        if b'[[scaffold' not in data:
-            assert output.read_bytes() == data, relative
-        else:
-            assert b'[[scaffold' not in output.read_bytes(), relative
+    assert_template_integrity(VBEN_TEMPLATE, project)
     return key
+
+
+def validate_tail(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
+                  production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+    assert not (project / 'tail-react').exists()
+    assert not (project / 'vben-antd-vue3').exists()
+    assert (project / 'LICENSE_TAIL').is_file()
+    assert (project / 'src/App.tsx').is_file()
+    assert (project / 'src/api/jwe.ts').is_file()
+    assert (project / 'src/pages/System/SystemManagement.tsx').is_file()
+    assert not (project / 'apps').exists()
+    package = json.loads((project / 'package.json').read_text())
+    lock = json.loads((project / 'package-lock.json').read_text())
+    assert package['name'] == project.name
+    assert lock['name'] == project.name
+    assert lock['packages']['']['name'] == project.name
+    assert not any((project / x).exists() for x in ['node_modules', '.git', 'dist'])
+    assert_artifacts_excluded(project)
+    vite = (project / 'vite.config.ts').read_text()
+    assert 'AUTH_PROXY_TARGET' in vite and 'VITE_PORT' in vite
+    assert 'VITE_API_PROXY_URL' not in vite
+    assert 'http://127.0.0.1' not in vite
+    production_env = (project / '.env.production').read_text()
+    assert f'VITE_GLOB_API_URL={production_api_url}\n' in production_env
+    assert f'VITE_GLOB_AUTH_API_URL={production_auth_api_url}\n' in production_env
+    client = (project / 'src/api/client.ts').read_text()
+    assert 'VITE_GLOB_AUTH_API_URL' in client and '"/api/auth"' in client
+    assert 'VITE_AUTH_API_URL' not in client and '"Accept-Language"' in client
+    assert_template_integrity(TAIL_TEMPLATE, project)
+
+
+def validate_art(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
+                 production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+    assert not (project / 'art-eleplus-vue3').exists()
+    assert not (project / 'vben-antd-vue3').exists()
+    assert (project / 'LICENSE').is_file()
+    assert (project / 'src/App.vue').is_file()
+    assert (project / 'src/api/auth-service.ts').is_file()
+    assert (project / 'src/views/system/components/ManagementPage.vue').is_file()
+    assert not (project / 'apps').exists()
+    package = json.loads((project / 'package.json').read_text())
+    assert package['name'] == project.name
+    assert (project / 'pnpm-lock.yaml').is_file()
+    assert not any((project / x).exists() for x in ['node_modules', '.git', 'dist'])
+    assert_artifacts_excluded(project)
+    vite = (project / 'vite.config.ts').read_text()
+    assert 'AUTH_PROXY_TARGET' in vite and 'VITE_PORT' in vite
+    assert 'VITE_API_PROXY_URL' not in vite
+    assert 'http://127.0.0.1' not in vite
+    production_env = (project / '.env.production').read_text()
+    assert f'VITE_GLOB_API_URL={production_api_url}\n' in production_env
+    assert f'VITE_GLOB_AUTH_API_URL={production_auth_api_url}\n' in production_env
+    client = (project / 'src/api/auth-service.ts').read_text()
+    assert 'VITE_GLOB_AUTH_API_URL' in client and "'/api/auth'" in client
+    assert "'Accept-Language'" in client
+    assert 'RSA-OAEP-256' in client and 'A256GCM' in client
+    assert 'VITE_API_URL' not in ''.join(
+        path.read_text() for path in project.rglob('*')
+        if path.is_file() and path.suffix in {'.ts', '.vue'}
+    )
+    assert_template_integrity(ART_TEMPLATE, project)
+
+
+def validate_shadcn(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
+                    production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+    assert not (project / 'shadcn-react').exists()
+    assert not (project / 'vben-antd-vue3').exists()
+    assert (project / 'LICENSE_SHADCN').is_file()
+    assert (project / 'src/app/auth/login/page.tsx').is_file()
+    assert (project / 'src/app/system/[resource]/page.tsx').is_file()
+    assert (project / 'src/features/auth/api.ts').is_file()
+    assert (project / 'src/features/system/components/management-page.tsx').is_file()
+    assert not (project / 'apps').exists()
+    package = json.loads((project / 'package.json').read_text())
+    assert package['name'] == project.name
+    assert (project / 'bun.lock').is_file()
+    assert not any((project / x).exists() for x in ['node_modules', '.git', '.next'])
+    assert_artifacts_excluded(project)
+    production_env = (project / '.env.production').read_text()
+    assert f'VITE_GLOB_API_URL={production_api_url}\n' in production_env
+    assert f'VITE_GLOB_AUTH_API_URL={production_auth_api_url}\n' in production_env
+    config = (project / 'next.config.ts').read_text()
+    assert 'AUTH_PROXY_TARGET' in config and 'VITE_GLOB_AUTH_API_URL' in config
+    assert "source: '/api/auth/:path*'" in config
+    client = (project / 'src/features/auth/api.ts').read_text()
+    assert "const API_BASE = '/api/auth'" in client
+    assert "'Accept-Language'" in client
+    assert 'RSA-OAEP-256' in client and 'A256GCM' in client
+    assert_template_integrity(SHADCN_TEMPLATE, project)
 
 
 with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
@@ -103,7 +202,7 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     for name, options in cases.items():
         run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
              '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
-        keys.append(validate(output / name))
+        keys.append(validate_vben(output / name))
         print(f'PASS {name}', flush=True)
     assert len(set(keys)) == len(keys), 'store keys must differ between projects'
     custom_api_url = 'https://api.example.com/main'
@@ -112,13 +211,67 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
          '--run-hooks=always', '--no-prompt', 'Project=custom-production-urls',
          f'VITE_GLOB_API_URL={custom_api_url}',
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
-    validate(output / 'custom-production-urls', custom_api_url, custom_auth_api_url)
+    validate_vben(output / 'custom-production-urls', custom_api_url, custom_auth_api_url)
     print('PASS custom production API URLs', flush=True)
     run(['make', 'full', 'PROJECT=make-ui', 'UI=vben', f'OUTPUT_DIR={output}', f'SCAFFOLD={SCAFFOLD}'])
-    validate(output / 'make-ui')
+    validate_vben(output / 'make-ui')
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
          '--no-prompt', 'Project=hooks-ui'])
-    validate(output / 'hooks-ui')
+    validate_vben(output / 'hooks-ui')
+    tail_cases = {
+        'tail-explicit': ['ui=tail-react'],
+        'tail-alias': ['ui=tail'],
+        'tail-preset': ['--preset=tail-react'],
+    }
+    for name, options in tail_cases.items():
+        run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+             '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
+        validate_tail(output / name)
+        print(f'PASS {name}', flush=True)
+    run(['make', 'full', 'PROJECT=make-tail', 'UI=tail-react',
+         f'OUTPUT_DIR={output}', f'SCAFFOLD={SCAFFOLD}'])
+    validate_tail(output / 'make-tail')
+    run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+         '--run-hooks=always', '--no-prompt', 'Project=tail-production-urls', 'ui=tail-react',
+         f'VITE_GLOB_API_URL={custom_api_url}',
+         f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
+    validate_tail(output / 'tail-production-urls', custom_api_url, custom_auth_api_url)
+    art_cases = {
+        'art-explicit': ['ui=art-eleplus-vue3'],
+        'art-alias': ['ui=art'],
+        'art-preset': ['--preset=art-eleplus-vue3'],
+    }
+    for name, options in art_cases.items():
+        run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+             '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
+        validate_art(output / name)
+        print(f'PASS {name}', flush=True)
+    run(['make', 'full', 'PROJECT=make-art', 'UI=art-eleplus-vue3',
+         f'OUTPUT_DIR={output}', f'SCAFFOLD={SCAFFOLD}'])
+    validate_art(output / 'make-art')
+    run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+         '--run-hooks=always', '--no-prompt', 'Project=art-production-urls',
+         'ui=art-eleplus-vue3', f'VITE_GLOB_API_URL={custom_api_url}',
+         f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
+    validate_art(output / 'art-production-urls', custom_api_url, custom_auth_api_url)
+    shadcn_cases = {
+        'shadcn-explicit': ['ui=shadcn-react'],
+        'shadcn-alias': ['ui=shadcn'],
+        'shadcn-preset': ['--preset=shadcn-react'],
+    }
+    for name, options in shadcn_cases.items():
+        run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+             '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
+        validate_shadcn(output / name)
+        print(f'PASS {name}', flush=True)
+    run(['make', 'full', 'PROJECT=make-shadcn', 'UI=shadcn-react',
+         f'OUTPUT_DIR={output}', f'SCAFFOLD={SCAFFOLD}'])
+    validate_shadcn(output / 'make-shadcn')
+    run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+         '--run-hooks=always', '--no-prompt', 'Project=shadcn-production-urls',
+         'ui=shadcn-react', f'VITE_GLOB_API_URL={custom_api_url}',
+         f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
+    validate_shadcn(output / 'shadcn-production-urls', custom_api_url, custom_auth_api_url)
     for invalid in ['antd', 'element-plus', 'invalid']:
         name = f'invalid-{invalid}'
         run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
@@ -147,7 +300,7 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
         "    globs: ['**/other-ui/**']\n"))
     run([SCAFFOLD, 'new', str(staged), f'--output-dir={output}',
          '--run-hooks=always', '--no-prompt', 'Project=isolated-ui'])
-    validate(output / 'isolated-ui')
+    validate_vben(output / 'isolated-ui')
     print('PASS Make entry, hooks, invalid selectors, asset integrity, workspace closure', flush=True)
     # Existing root files must not be overwritten while flattening the UI.
     conflict = output / 'conflict-ui'
