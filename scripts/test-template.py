@@ -11,6 +11,11 @@ LAYOUT = Path(__file__).resolve().parents[1]
 TEMPLATE = LAYOUT / '{{ .Project }}' / 'vben-antd-vue3'
 SCAFFOLD = os.environ.get('SCAFFOLD', 'scaffold')
 DEFAULT_PRODUCTION_API_URL = 'https://entry.go-cinch.top/api/auth'
+ARTIFACT_NAMES = {
+    '.cache', '.git', '.nitro', '.output', '.pnpm-store', '.stylelintcache',
+    '.turbo', '.vite', '.yarn', '__pycache__', 'coverage', 'dist',
+    'node_modules',
+}
 
 
 def run(args, success=True):
@@ -32,9 +37,7 @@ def validate(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert sorted(p.name for p in (project / 'apps').iterdir()) == ['web-antd']
     assert not any((project / x).exists() for x in ['node_modules', '.git', 'docs', 'playground'])
     for path in project.rglob('*'):
-        assert path.name not in {'node_modules', '.pnpm-store', '.yarn', 'dist',
-                                 '.turbo', '.cache', '.vite', '.nitro', '.output',
-                                 'coverage', '__pycache__', '.git', '.DS_Store'}
+        assert path.name not in ARTIFACT_NAMES | {'.DS_Store'}
         assert not path.name.endswith(('.log', '.local'))
     env = (project / 'apps/web-antd/.env').read_text()
     assert f'VITE_APP_NAMESPACE={project_root.name}\n' in env
@@ -69,6 +72,10 @@ def validate(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
         if not source.is_file():
             continue
         relative = source.relative_to(TEMPLATE)
+        if any(part in ARTIFACT_NAMES for part in relative.parts):
+            continue
+        if relative.name == '.DS_Store' or relative.name.endswith(('.log', '.local')):
+            continue
         output = project / relative
         data = source.read_bytes()
         # Scaffold intentionally drops truly empty source files.

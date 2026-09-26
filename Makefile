@@ -72,7 +72,7 @@ local-vben-antd-vue3:
 		"Project=$$project" "ui=vben-antd-vue3" \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
 		"VITE_GLOB_AUTH_API_URL=$(VITE_GLOB_AUTH_API_URL)"; \
-	rsync -a --checksum \
+	rsync -a --checksum --delete \
 		--exclude='.git/' \
 		--exclude='.DS_Store' \
 		--exclude='node_modules/' \
@@ -80,6 +80,7 @@ local-vben-antd-vue3:
 		--exclude='dist/' \
 		--exclude='.turbo/' \
 		--exclude='.cache/' \
+		--exclude='*.local' \
 		"$$staging_dir/$$project/" \
 		"$$target_dir/"; \
 	test ! -e "$$target_dir/vben-antd-vue3"
