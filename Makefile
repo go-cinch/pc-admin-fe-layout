@@ -1,10 +1,11 @@
 .DEFAULT_GOAL := full
-.PHONY: full lint test local-vben-antd-vue3
+.PHONY: full lint test local
 
 SCAFFOLD ?= scaffold
 PROJECT ?= pc-admin
 OUTPUT_DIR ?= ..
 DEMOS_DIR ?= $(CURDIR)/../demos
+DEMO ?=
 UI ?= vben-antd-vue3
 VITE_GLOB_API_URL ?= https://entry.go-cinch.top/api/auth
 VITE_GLOB_AUTH_API_URL ?= https://entry.go-cinch.top/api/auth
@@ -26,13 +27,17 @@ lint:
 test: lint
 	SCAFFOLD="$(SCAFFOLD)" python3 scripts/test-template.py
 
-local-vben-antd-vue3:
+local:
 	@set -eu; \
-	project='vben-antd-vue3-pc-admin'; \
+	project='$(DEMO)'; \
+	case "$$project" in \
+		''|.|..|*/*) \
+			printf 'Usage: make local DEMO=<demos-subdirectory> [UI=<preset>]\n' >&2; \
+			exit 2; \
+			;; \
+	esac; \
 	target_dir="$(DEMOS_DIR)/$$project"; \
 	env_file="$$target_dir/apps/web-antd/.env"; \
-	test -d "$$target_dir"; \
-	test -f "$$env_file"; \
 	read_secure_key() { \
 		awk ' \
 			index($$0, "VITE_APP_STORE_SECURE_KEY=") == 1 { \
@@ -42,24 +47,21 @@ local-vben-antd-vue3:
 			END { if (matches != 1) exit 1 } \
 		' "$$1"; \
 	}; \
-	secure_key=$$(read_secure_key "$$env_file"); \
-	if [ -z "$$secure_key" ]; then \
-		printf 'VITE_APP_STORE_SECURE_KEY is empty in %s\n' "$$env_file" >&2; \
-		exit 1; \
-	fi; \
 	work_dir=$$(mktemp -d "$${TMPDIR:-/tmp}/pc-admin-fe-layout.XXXXXX"); \
 	staging_dir="$$work_dir/generated"; \
 	env_backup="$$work_dir/web-antd.env"; \
 	mkdir -p "$$staging_dir"; \
-	cp -p "$$env_file" "$$env_backup"; \
+	secure_key=''; \
 	restore_state() { \
 		status=$$?; \
 		trap - EXIT INT TERM; \
-		cp -p "$$env_backup" "$$env_file"; \
-		restored_secure_key=$$(read_secure_key "$$env_file"); \
-		if [ "$$restored_secure_key" != "$$secure_key" ]; then \
-			printf 'failed to restore VITE_APP_STORE_SECURE_KEY in %s\n' "$$env_file" >&2; \
-			status=1; \
+		if [ -f "$$env_backup" ]; then \
+			cp -p "$$env_backup" "$$env_file"; \
+			restored_secure_key=$$(read_secure_key "$$env_file"); \
+			if [ "$$restored_secure_key" != "$$secure_key" ]; then \
+				printf 'failed to restore VITE_APP_STORE_SECURE_KEY in %s\n' "$$env_file" >&2; \
+				status=1; \
+			fi; \
 		fi; \
 		rm -rf "$$work_dir"; \
 		exit "$$status"; \
@@ -67,9 +69,19 @@ local-vben-antd-vue3:
 	trap restore_state EXIT; \
 	trap 'exit 130' INT; \
 	trap 'exit 143' TERM; \
+	if [ -e "$$target_dir" ]; then \
+		test -d "$$target_dir"; \
+		test -f "$$env_file"; \
+		secure_key=$$(read_secure_key "$$env_file"); \
+		if [ -z "$$secure_key" ]; then \
+			printf 'VITE_APP_STORE_SECURE_KEY is empty in %s\n' "$$env_file" >&2; \
+			exit 1; \
+		fi; \
+		cp -p "$$env_file" "$$env_backup"; \
+	fi; \
 	$(SCAFFOLD) new "$(CURDIR)" --output-dir="$$staging_dir" \
-		--run-hooks=always --no-prompt --preset=vben-antd-vue3 \
-		"Project=$$project" "ui=vben-antd-vue3" \
+		--run-hooks=always --no-prompt --preset="$(UI)" \
+		"Project=$$project" "ui=$(UI)" \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
 		"VITE_GLOB_AUTH_API_URL=$(VITE_GLOB_AUTH_API_URL)"; \
 	rsync -a --checksum --delete \

@@ -13,7 +13,7 @@ concurrency:
 env:
   DEMOS_REPO: go-cinch/demos
   DEMOS_BRANCH: main
-  DEMO_PROJECT: vben-antd-vue3-pc-admin
+  DEMO_PROJECT: vben-antd-vue3
   # Commit referenced by the immutable Scaffold v0.13.1 release tag.
   SCAFFOLD_COMMIT_SHA: a9385db9a94f5a6322998b14ae21d6d2a8819bd4
   PNPM_VERSION: 11.16.0
@@ -22,7 +22,7 @@ env:
 
 jobs:
   sync:
-    name: Generate and publish demos/vben-antd-vue3-pc-admin
+    name: Generate and publish demos/vben-antd-vue3
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -63,18 +63,18 @@ jobs:
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Generate and incrementally sync PC admin demo
-        run: make -C "$GITHUB_WORKSPACE/pc-admin-fe-layout" local-vben-antd-vue3
+        run: make -C "$GITHUB_WORKSPACE/pc-admin-fe-layout" local DEMO="$DEMO_PROJECT"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: demos/vben-antd-vue3-pc-admin/.node-version
+          node-version-file: demos/${{ env.DEMO_PROJECT }}/.node-version
 
       - name: Install pnpm
         run: npm install --global "pnpm@${PNPM_VERSION}"
 
       - name: Verify generated PC admin demo
-        working-directory: demos/vben-antd-vue3-pc-admin
+        working-directory: demos/${{ env.DEMO_PROJECT }}
         run: |
           set -euo pipefail
           pnpm install --frozen-lockfile
@@ -100,7 +100,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "[chore] vben-antd-vue3-pc-admin sync pc-admin-fe-layout ${SOURCE_SHA:0:7}"
+          git commit -m "[chore] $DEMO_PROJECT sync pc-admin-fe-layout ${SOURCE_SHA:0:7}"
 
           max_attempts=5
           for attempt in $(seq 1 "$max_attempts"); do
