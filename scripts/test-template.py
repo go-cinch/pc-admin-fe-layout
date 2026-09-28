@@ -188,6 +188,30 @@ def validate_shadcn(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert_template_integrity(SHADCN_TEMPLATE, project)
 
 
+def validate_ant_mobile(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
+                        production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+    assert not any((project / x).exists() for x in ['ant-design-mobile', 'vben-antd-vue3', 'apps'])
+    package = json.loads((project / 'package.json').read_text())
+    assert package['name'] == project.name
+    assert package['dependencies']['antd-mobile'] == '5.43.0'
+    assert 'react' in package['dependencies'] and 'vue' not in package['dependencies']
+    assert (project / 'pnpm-lock.yaml').is_file()
+    assert (project / 'LICENSE_ANT_DESIGN_MOBILE').is_file()
+    source = LAYOUT / '{{ .Project }}' / 'ant-design-mobile'
+    for page in ['AuthPage', 'OverviewPage', 'ManagementPage', 'ProfilePage']:
+        assert (project / 'src/pages' / (page + '.tsx')).is_file()
+    client = (project / 'src/lib/api.ts').read_text()
+    for invariant in ['RSA-OAEP-256', 'A256GCM', 'Accept-Language', 'x-idempotent', 'VITE_GLOB_AUTH_API_URL', '/api/auth']:
+        assert invariant in client
+    assert 'antd-mobile' in (project / 'src/App.tsx').read_text()
+    assert '#785e6e' in (project / 'src/prototype-tokens.css').read_text()
+    env = (project / '.env.production').read_text()
+    assert f'VITE_GLOB_API_URL={production_api_url}\n' in env
+    assert f'VITE_GLOB_AUTH_API_URL={production_auth_api_url}\n' in env
+    assert_artifacts_excluded(project)
+    assert_template_integrity(source, project)
+
+
 with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     output = Path(temp)
     keys = []
@@ -272,6 +296,35 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
          'ui=shadcn-react', f'VITE_GLOB_API_URL={custom_api_url}',
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
     validate_shadcn(output / 'shadcn-production-urls', custom_api_url, custom_auth_api_url)
+    for name, options in {
+        'ant-mobile-explicit': ['ui=ant-design-mobile'],
+        'ant-mobile-alias': ['ui=antd-mobile'],
+        'ant-mobile-preset': ['--preset=ant-design-mobile'],
+        'ant-mobile-alias-preset': ['--preset=antd-mobile'],
+    }.items():
+        run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+             '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
+        validate_ant_mobile(output / name)
+        print(f'PASS {name}', flush=True)
+    run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+         '--run-hooks=always', '--no-prompt', 'Project=ant-mobile-production',
+         'ui=ant-design-mobile', f'VITE_GLOB_API_URL={custom_api_url}',
+         f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
+    validate_ant_mobile(output / 'ant-mobile-production', custom_api_url, custom_auth_api_url)
+    local_output = output / 'local-ant-demos'
+    run(['make', 'local', 'DEMO=ant-design-mobile', f'DEMOS_DIR={local_output}'])
+    generated_ant = local_output / 'ant-design-mobile'
+    ant_env = generated_ant / '.env.development.local'
+    saved_ant_env = ant_env.read_text()
+    assert 'VITE_PORT=' in saved_ant_env and 'AUTH_PROXY_TARGET=' in saved_ant_env
+    ant_env.unlink()
+    validate_ant_mobile(generated_ant)
+    ant_env.write_text(saved_ant_env)
+    run(['make', 'local', 'DEMO=ant-design-mobile', f'DEMOS_DIR={local_output}'])
+    assert ant_env.read_text() == saved_ant_env
+    run(['make', 'local', 'DEMO=custom-ant-mobile', 'UI=antd-mobile', f'DEMOS_DIR={local_output}'])
+    assert (local_output / 'custom-ant-mobile/src/main.tsx').is_file()
+    print('PASS Ant Mobile local selection, overrides, environment preservation', flush=True)
     for invalid in ['antd', 'element-plus', 'invalid']:
         name = f'invalid-{invalid}'
         run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
@@ -312,3 +365,20 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     assert not (conflict / 'apps').exists(), 'hook moved files before conflict check'
     assert 'destination already exists' in result.stdout + result.stderr, result.stdout + result.stderr
     print('PASS UI selection, flat output, artifact exclusion, and collision protection', flush=True)
+
+    ant_staged = staged / '{{ .Project }}' / 'ant-design-mobile'
+    for relative in ['node_modules/fake/index.js', 'dist/index.html', '.env.development.local', '.vite/cache.json']:
+        artifact = ant_staged / relative
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text('[[scaffold invalid template scaffold]]')
+    run([SCAFFOLD, 'new', str(staged), f'--output-dir={output}', '--run-hooks=always',
+         '--no-prompt', 'Project=isolated-ant-mobile', 'ui=antd-mobile'])
+    validate_ant_mobile(output / 'isolated-ant-mobile')
+    conflict = output / 'conflict-ant-mobile'
+    conflict.mkdir()
+    (conflict / 'package.json').write_text('existing ant mobile project')
+    run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
+         '--no-prompt', '--overwrite', 'Project=conflict-ant-mobile', 'ui=antd-mobile'], success=False)
+    assert (conflict / 'package.json').read_text() == 'existing ant mobile project'
+    assert not (conflict / 'src').exists()
+    print('PASS Ant Mobile artifacts and collision protection', flush=True)

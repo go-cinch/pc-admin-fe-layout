@@ -208,3 +208,9 @@ dependencies.
 File contents use `[[scaffold ... scaffold]]` as Scaffold delimiters to avoid
 conflicts with Vue's `{{ ... }}` syntax. Paths continue to use Scaffold's default
 `{{ .Project }}` syntax.
+
+### Ant Design Mobile · 绛钛
+
+`make local DEMO=ant-design-mobile` generates the React mobile implementation of `mobile-admin/index2.html` into `demos/ant-design-mobile`. Select `ui=ant-design-mobile` (alias `antd-mobile`) or the corresponding preset. It preserves the garnet light/dark prototype styling and uses the same real auth and management APIs as Vben. The local port allocator selects the first unassigned port above 5666 and preserves `.env.development.local`; this demo currently uses 5671.
+
+See [`{{ .Project }}/ant-design-mobile/README.md`](<{{ .Project }}/ant-design-mobile/README.md>) for development and validation commands.
