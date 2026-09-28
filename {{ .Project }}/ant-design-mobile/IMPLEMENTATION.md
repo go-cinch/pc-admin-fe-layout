@@ -1,6 +1,6 @@
-# Original implementation audit (historical)
+# Implementation audit
 
-> The 2026-09-27 usability revision supersedes the original layout and verification claims below. See [UI_FIXES.md](UI_FIXES.md) for current behavior and checks. The original 25-test full run was not repeated as part of the UI repair.
+> Updated 2026-09-29 after aligning the template with the current Go Cinch mobile design and E2E requirements. See [UI_FIXES.md](UI_FIXES.md) for the detailed UI review.
 
 Visual authority: `/Users/eric/dev/learning/go-cinch/mobile-admin/index2.html`, **绛钛 / Garnet Titanium**. Its light/dark palette, metal team card, glass dock, desktop presentation and sheet placement are preserved. No source from the 月白 `mobile-admin/index.html` is used.
 
@@ -15,7 +15,7 @@ Functional authority: the current Vben template's core/system/dashboard/profile 
 | User moderation            | Reject/approve registrations, temporary/permanent locks, unlock and password-change unlocking. Browser checks cover validation, encrypted credential updates and cross-session invalidation.                                                                      |
 | Search and result controls | Remote suggestions, matching highlights, removable history, deduplicated collapsible filters, grouped pagination, redesigned batch selection, density, column visibility and style controls. Mobile fullscreen is intentionally omitted.                          |
 | Shell and permissions      | Overview/profile availability, protected-route and button guards, wildcard workspace permission, ordered tools, pin/close tabs, avatar menu and persistent screen lock. Guest and read-only accounts are covered.                                                 |
-| Localization and branding  | Chinese/English, current-language API headers, logo variants, shared editable copyright and persisted appearance settings. Plain business date/time strings are not converted between timezones.                                                                  |
+| Localization and branding  | Chinese/English, reactive validation messages, current-language API headers, logo variants, shared editable copyright and persisted appearance settings. Timestamp values use the selected timezone; plain wall-time strings remain unchanged.                    |
 | Scaffold integration       | Selector `ant-design-mobile`, alias `antd-mobile`, presets, Make selection, flat generation, persisted local environment and first-free-port allocation. Complete layout suite passes.                                                                            |
 
 ## Runtime and generation
@@ -51,7 +51,7 @@ pnpm test
 pnpm build
 ```
 
-All pass; **8 unit tests passed**. The production build completes without a large-chunk warning.
+All pass; **27 unit tests passed**. The production build completes without a large-chunk warning.
 
 From `/Users/eric/dev/learning/go-cinch/e2e`:
 
@@ -61,8 +61,8 @@ E2E_FRONTEND=ant-design-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5671 
 pnpm test:ant-design-mobile:full -- http://127.0.0.1:5671/
 ```
 
-The final headless full run reports **25 passed, 0 failed, 0 skipped**. Every intended full-mode case passed. JUnit evidence is `e2e/test-results/ant-design-mobile.xml`; coverage is in `e2e/tests/ant-design-mobile`.
+The final headless full run reports **38 passed, 0 failed, 0 skipped**. Every intended full-mode case passed. JUnit evidence is `e2e/test-results/ant-design-mobile.xml`; coverage is in `e2e/tests/ant-design-mobile`.
 
-Responsive coverage includes 320, 375, 390, 430, 768, 844, 1024 and 1440px, portrait/landscape, dark mode, reduced transparency/motion, nested-sheet Escape behavior and a desktop sheet-boundary assertion. Separate Chromium and WebKit checks passed real login, all six editor sheets, desktop frame placement and zero page errors. A 320px text-zoom check found no document overflow. Physical-device acceptance was not run.
+Responsive coverage includes 320, 375, 390, 430, 768, 844, 1024 and 1440px, portrait/landscape, dark mode, reduced transparency/motion, nested-sheet Escape behavior, viewport zoom configuration, copyright scroll boundaries and a desktop sheet-boundary assertion. Chromium and WebKit checks passed real login, keyboard verification, all six editor sheets, loading deadlines, independent skeletons, timezone behavior, desktop frame placement and zero page errors. Physical-device acceptance was not run.
 
 After the final suite, an independent UI-only audit searched all six resources for this task's unique test prefixes and found **zero remaining test-owned business records**. Administrator identity was verified; built-in dictionary restoration is asserted in the passing suite. The audit session was signed out. Auth health and the frontend proxy were checked successfully.

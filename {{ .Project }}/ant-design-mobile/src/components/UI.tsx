@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { Popup, Switch, Input, TextArea, SpinLoading, Empty, Button } from 'antd-mobile';
 import { t } from '../locales';
+import { resolveMessage, type Feedback } from '../lib/form-feedback';
 import { preferences } from '../lib/preferences';
 import { registerSheet } from '../lib/sheet-history';
 const paths: Record<string, ReactNode> = {
@@ -121,7 +122,6 @@ const paths: Record<string, ReactNode> = {
     </>
   ),
   notification: <path d="M5 16V9a7 7 0 0 1 14 0v7l2 2H3l2-2m4 5h6" />,
-  fullscreen: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
   layers: <path d="m3 7 9-4 9 4-9 4zm0 5 9 4 9-4M3 17l9 4 9-4" />,
   translate: <path d="M2 5h12M8 2v3m-3 0c0 6 5 10 9 11M12 5c0 6-5 10-9 11m11 5 4-12 4 12m-7-4h6" />,
   palette: (
@@ -189,17 +189,23 @@ export function IconButton({
   label,
   onClick,
   disabled = false,
+  expanded,
+  controls,
 }: {
   name: string;
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  expanded?: boolean;
+  controls?: string;
 }) {
   return (
     <button
       type="button"
       className="icon-button"
       aria-label={label}
+      aria-expanded={expanded}
+      aria-controls={controls}
       title={label}
       onClick={onClick}
       disabled={disabled}
@@ -414,23 +420,24 @@ export function Field({
 }: {
   name: string;
   label: string;
-  error?: string;
+  error?: Feedback;
   hint?: string;
   required?: boolean;
   warning?: boolean;
   children: ReactNode;
 }) {
+  const feedback = resolveMessage(error);
   return (
-    <div className={`field ${error ? (warning ? 'warning' : 'invalid') : ''}`}>
+    <div className={`field ${feedback ? (warning ? 'warning' : 'invalid') : ''}`}>
       <label htmlFor={name}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
       {children}
       {hint && <small className="muted">{hint}</small>}
-      {error && (
+      {feedback && (
         <p id={`${name}-error`} className="field-error" role="alert">
-          {error}
+          {feedback}
         </p>
       )}
     </div>
@@ -453,7 +460,7 @@ export function TextField({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  error?: string;
+  error?: Feedback;
   type?: 'text' | 'password';
   hint?: string;
   multiline?: boolean;
@@ -559,7 +566,7 @@ function safeLink(value: string) {
 }
 export function Copyright() {
   const p = preferences;
-  return p.copyright ? (
+  return p.footer && p.copyright ? (
     <footer className="copyright">
       Copyright © {p.copyrightDate || new Date().getFullYear()}{' '}
       <a href={safeLink(p.companyLink)} target="_blank" rel="noreferrer">

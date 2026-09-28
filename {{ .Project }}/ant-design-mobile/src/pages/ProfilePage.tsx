@@ -4,6 +4,7 @@ import { Button, Skeleton } from 'antd-mobile';
 import { ApiError, loadUser, logout, session, submitCredentials } from '../lib/api';
 import { focusFirstError } from '../lib/form-focus';
 import { nonempty } from '../lib/validation';
+import { message, type Feedback } from '../lib/form-feedback';
 import { initials } from '../lib/format';
 import type { PointCaptcha as Challenge, CaptchaPoint } from '../lib/types';
 import { t } from '../locales';
@@ -18,7 +19,7 @@ export default function ProfilePage() {
     [old, setOld] = useState(''),
     [password, setPassword] = useState(''),
     [confirmation, setConfirmation] = useState(''),
-    [errors, setErrors] = useState<Record<string, string>>({}),
+    [errors, setErrors] = useState<Record<string, Feedback>>({}),
     [error, setError] = useState(''),
     [infoError, setInfoError] = useState(''),
     [infoLoading, setInfoLoading] = useState(true),
@@ -43,12 +44,16 @@ export default function ProfilePage() {
   }
   async function submit() {
     if (busy) return;
-    const e: Record<string, string> = {};
+    const e: Record<string, Feedback> = {};
+    const trimmedOld = old.trim();
+    const trimmedPassword = password.trim();
+    const trimmedConfirmation = confirmation.trim();
     setError('');
-    if (!nonempty(old)) e.old = t('app.validation.currentPassword');
-    if (!nonempty(password)) e.password = t('app.validation.password');
-    if (password !== confirmation) e.confirmation = t('page.profile.password.passwordMismatch');
-    if (captcha && !points.length) e.captcha = t('app.validation.verification');
+    if (!nonempty(trimmedOld)) e.old = message('app.validation.currentPassword');
+    if (!nonempty(trimmedPassword)) e.password = message('app.validation.password');
+    if (trimmedPassword !== trimmedConfirmation)
+      e.confirmation = message('page.profile.password.passwordMismatch');
+    if (captcha && !points.length) e.captcha = message('app.validation.verification');
     setErrors(e);
     if (Object.keys(e).length) {
       focusFirstError(formRef.current);
@@ -57,8 +62,8 @@ export default function ProfilePage() {
     setBusy(true);
     try {
       await submitCredentials('password_change', {
-        old_password: old,
-        new_password: password,
+        old_password: trimmedOld,
+        new_password: trimmedPassword,
         captcha_id: captcha?.captcha_id,
         captcha_points: points.length ? points : undefined,
       });

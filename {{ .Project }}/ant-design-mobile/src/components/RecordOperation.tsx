@@ -9,6 +9,7 @@ import { Sheet, Field, ErrorBox } from './UI';
 import { Choices } from './Settings';
 import { focusFirstError } from '../lib/form-focus';
 import DateTimeField from './DateTimeField';
+import { message, type Feedback } from '../lib/form-feedback';
 export default function RecordOperation({
   operation,
   resource,
@@ -28,7 +29,7 @@ export default function RecordOperation({
   const formRef = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [warning, setWarning] = useState(''),
+    [warning, setWarning] = useState<Feedback>(''),
     [decision, setDecision] = useState('approve'),
     [reason, setReason] = useState(''),
     [mode, setMode] = useState('until'),
@@ -38,13 +39,13 @@ export default function RecordOperation({
     setError('');
     setWarning('');
     if (operation === 'review' && decision === 'reject' && !reason.trim()) {
-      setWarning(t('system.validation.rejectionRequired'));
+      setWarning(message('system.validation.rejectionRequired'));
       focusFirstError(formRef.current);
       return;
     }
     const date = parseDateTime(until);
     if (operation === 'lock' && mode === 'until' && (!date.isValid() || !date.isAfter(dayjs()))) {
-      setWarning(t('system.validation.futureLock'));
+      setWarning(message('system.validation.futureLock'));
       focusFirstError(formRef.current);
       return;
     }

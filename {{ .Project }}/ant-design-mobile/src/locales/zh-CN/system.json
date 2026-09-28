@@ -92,8 +92,6 @@
     "default": "默认",
     "loose": "宽松",
     "density": "表格密度",
-    "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏",
     "visibleColumns": "显示列",
     "columns": "列设置",
     "style": "表格样式",

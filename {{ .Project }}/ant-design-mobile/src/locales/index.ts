@@ -46,8 +46,8 @@ const pairs: Record<string, [string, string]> = {
     'Sets the desktop login panel position. Mobile panels remain centered.',
   ],
   timezoneHint: [
-    '当前保存的偏好：{zone}。业务日期保持原始时间，此设置暂不改变页面日期。',
-    'Saved preference: {zone}. Business dates retain their original values; this preference does not change displayed dates.',
+    '当前时区：{zone}。业务时间会按此时区显示。',
+    'Current timezone: {zone}. Business times are displayed in this timezone.',
   ],
   messagesUnavailable: ['消息中心暂未开放', 'Message center is not available yet'],
   messagesHint: [
@@ -135,8 +135,17 @@ const pairs: Record<string, [string, string]> = {
   registerHint: ['创建账号，等待管理员审核', 'Create an account for administrator review'],
   slider: ['向右滑动完成验证', 'Slide right to verify'],
   sliderHandle: ['拖动验证滑块', 'Drag verification slider'],
+  sliderKeyboard: [
+    '使用左右方向键移动滑块，按 Enter 或空格提交验证。',
+    'Use the arrow keys to move the slider, then press Enter or Space to verify.',
+  ],
+  sliderProgress: ['验证滑块，已移动 {count}%', 'Verification slider, {count}% complete'],
   refreshCaptcha: ['刷新验证码', 'Refresh challenge'],
   captchaAlt: ['按提示顺序点选图片', 'Select points in the indicated order'],
+  pointCaptchaKeyboard: [
+    '使用方向键移动光标，按 Enter 或空格选择位置。',
+    'Use the arrow keys to move the cursor, then press Enter or Space to select a point.',
+  ],
   dark: ['深绛外观', 'Deep garnet'],
   light: ['浅绛外观', 'Pale garnet'],
   theme: ['主题', 'Theme'],
@@ -163,7 +172,6 @@ const pairs: Record<string, [string, string]> = {
   icpLink: ['备案链接', 'ICP link'],
   autoYear: ['留空使用当前年份', 'Current year when empty'],
   timezone: ['时区', 'Timezone'],
-  fullscreen: ['全屏', 'Fullscreen'],
   messages: ['消息', 'Messages'],
   noMessages: ['暂无新消息', 'No new messages'],
   lock: ['锁屏', 'Lock screen'],

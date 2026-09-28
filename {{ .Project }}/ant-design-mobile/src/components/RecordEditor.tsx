@@ -9,6 +9,7 @@ import { t } from '../locales';
 import { Sheet, Field, TextField, ErrorBox, PasswordInput } from './UI';
 import RemoteSelect from './RemoteSelect';
 import { focusFirstError } from '../lib/form-focus';
+import { message, type Feedback } from '../lib/form-feedback';
 export default function RecordEditor({
   resource,
   record,
@@ -48,7 +49,7 @@ export default function RecordEditor({
     initial.current = f;
   }
   const [form, setForm] = useState(initial.current),
-    [errors, setErrors] = useState<Record<string, string>>({}),
+    [errors, setErrors] = useState<Record<string, Feedback>>({}),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const idempotency = useRef(crypto.randomUUID());
@@ -59,6 +60,7 @@ export default function RecordEditor({
     for (const key of ['username', 'name', 'word', 'key', 'group'])
       if (typeof value[key] === 'string') value[key] = (value[key] as string).trim();
     if (resource === 'user') {
+      if (typeof value.password === 'string') value.password = value.password.trim();
       value.role_id = Number(value.role_id || 0);
       if (!value.password) delete value.password;
       const metadata = { ...record?.metadata };
@@ -74,24 +76,24 @@ export default function RecordEditor({
   async function submit() {
     if (busy) return;
     setError('');
-    const e: Record<string, string> = {};
+    const e: Record<string, Feedback> = {};
     for (const field of config.fields)
       if (
         (field.required || (!record && field.createRequired)) &&
         (form[field.key] === undefined || !String(form[field.key]).trim())
       )
-        e[field.key] = t('system.validation.required', { field: field.label });
+        e[field.key] = message('system.validation.required', { field: field.label });
     if (resource === 'user') {
-      if (!nonempty(form.username)) e.username = t('app.validation.username');
+      if (!nonempty(form.username)) e.username = message('app.validation.username');
       if ((!record || form.password) && !nonempty(form.password))
-        e.password = t('app.validation.password');
+        e.password = message('app.validation.password');
     }
     if (resource === 'dictionary') {
-      if (!dictionaryKeyValid(String(form.key))) e.key = t('system.validation.dictionaryKey');
+      if (!dictionaryKeyValid(String(form.key))) e.key = message('system.validation.dictionaryKey');
       try {
         JSON.parse(String(form.value));
       } catch {
-        e.value = t('system.validation.json');
+        e.value = message('system.validation.json');
       }
     }
     setErrors(e);

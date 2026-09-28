@@ -50,7 +50,15 @@ export function Choices({
   );
 }
 
-export default function Settings({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function Settings({
+  open,
+  onClose,
+  showLoginPosition,
+}: {
+  open: boolean;
+  onClose: () => void;
+  showLoginPosition: boolean;
+}) {
   return (
     <Sheet
       open={open}
@@ -80,13 +88,15 @@ export default function Settings({ open, onClose }: { open: boolean; onClose: ()
           ]}
         />
       </Field>
-      <Field name="login-position" label={t('panel')} hint={t('desktopPositionHint')}>
-        <Choices
-          value={p.loginPosition}
-          onChange={(v) => (p.loginPosition = String(v))}
-          options={['left', 'center', 'right'].map((value) => ({ value, label: t(value) }))}
-        />
-      </Field>
+      {showLoginPosition && (
+        <Field name="login-position" label={t('panel')} hint={t('desktopPositionHint')}>
+          <Choices
+            value={p.loginPosition}
+            onChange={(v) => (p.loginPosition = String(v))}
+            options={['left', 'center', 'right'].map((value) => ({ value, label: t(value) }))}
+          />
+        </Field>
+      )}
       <h3>{t('layout')}</h3>
       <Toggle label={t('footer')} checked={p.footer} onChange={(v) => (p.footer = v)} />
       <section className="copyright-settings">

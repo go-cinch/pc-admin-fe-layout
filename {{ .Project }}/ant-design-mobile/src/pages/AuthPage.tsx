@@ -13,6 +13,7 @@ import {
 import { rememberCredentials, rememberedCredentials } from '../lib/storage';
 import { focusFirstError } from '../lib/form-focus';
 import { nonempty } from '../lib/validation';
+import { message, type Feedback } from '../lib/form-feedback';
 import type { PointCaptcha as Challenge, CaptchaPoint } from '../lib/types';
 import { t } from '../locales';
 import { preferences as p } from '../lib/preferences';
@@ -38,7 +39,7 @@ export default function AuthPage() {
     [verificationBusy, setVerificationBusy] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [errors, setErrors] = useState<Record<string, string>>({}),
+    [errors, setErrors] = useState<Record<string, Feedback>>({}),
     [registeredNotice, setRegisteredNotice] = useState(
       Boolean((location.state as { registered?: boolean } | null)?.registered),
     );
@@ -64,7 +65,7 @@ export default function AuthPage() {
         if (current === verification.current)
           setErrors((e) => ({
             ...e,
-            username: result.available ? '' : t('app.register.usernameExists'),
+            username: result.available ? '' : message('app.register.usernameExists'),
           }));
       } else {
         const result = await request<{ captcha?: Challenge }>(
@@ -81,14 +82,19 @@ export default function AuthPage() {
   }
   async function submit() {
     if (busy) return;
-    const e: Record<string, string> = {};
+    const e: Record<string, Feedback> = {};
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+    const trimmedConfirmation = confirmation.trim();
     setError('');
-    if (mode !== 'password_reset' && !nonempty(username)) e.username = t('app.validation.username');
-    if (!nonempty(password)) e.password = t('app.validation.password');
-    if (mode !== 'login' && password !== confirmation)
-      e.confirmation = t('page.profile.password.passwordMismatch');
-    if (mode !== 'password_reset' && !captcha && !proof) e.proof = t('app.validation.verification');
-    if (captcha && !points.length) e.captcha = t('app.validation.verification');
+    if (mode !== 'password_reset' && !nonempty(trimmedUsername))
+      e.username = message('app.validation.username');
+    if (!nonempty(trimmedPassword)) e.password = message('app.validation.password');
+    if (mode !== 'login' && trimmedPassword !== trimmedConfirmation)
+      e.confirmation = message('page.profile.password.passwordMismatch');
+    if (mode !== 'password_reset' && !captcha && !proof)
+      e.proof = message('app.validation.verification');
+    if (captcha && !points.length) e.captcha = message('app.validation.verification');
     setErrors(e);
     if (Object.keys(e).length) {
       focusFirstError(formRef.current);
@@ -98,22 +104,22 @@ export default function AuthPage() {
     try {
       if (mode === 'register') {
         const available = await request<{ available: boolean }>(
-          `/auth/pub/register/username?username=${encodeURIComponent(username.trim())}`,
+          `/auth/pub/register/username?username=${encodeURIComponent(trimmedUsername)}`,
           { public: true },
         );
         if (!available.available) {
-          setErrors({ username: t('app.register.usernameExists') });
+          setErrors({ username: message('app.register.usernameExists') });
           return;
         }
       }
       const payload =
         mode === 'password_reset'
-          ? { new_password: password }
+          ? { new_password: trimmedPassword }
           : mode === 'register'
-            ? { username: username.trim(), password, slider_proof: proof }
+            ? { username: trimmedUsername, password: trimmedPassword, slider_proof: proof }
             : {
-                username: username.trim(),
-                password,
+                username: trimmedUsername,
+                password: trimmedPassword,
                 remember_me: remember,
                 slider_proof: captcha ? undefined : proof,
                 captcha_id: captcha?.captcha_id,
@@ -121,15 +127,15 @@ export default function AuthPage() {
               };
       const result = await submitCredentials(mode, payload);
       if (mode === 'register') {
-        rememberCredentials(username.trim(), password);
+        rememberCredentials(trimmedUsername, trimmedPassword);
         navigate('/auth/login', { state: { registered: true } });
         return;
       }
       if (mode === 'password_reset') {
         const entry = rememberedCredentials();
         if (entry && (entry.username === username || entry.username === session.user?.username))
-          rememberCredentials(entry.username, password);
-      } else rememberCredentials(username.trim(), password, remember);
+          rememberCredentials(entry.username, trimmedPassword);
+      } else rememberCredentials(trimmedUsername, trimmedPassword, remember);
       acceptSession(result);
       if (result.password_reset_required) navigate('/auth/reset-password', { replace: true });
       else {

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { request } from '../lib/api';
 import { t } from '../locales';
 import type { PointCaptcha as Challenge, CaptchaPoint } from '../lib/types';
 import { Icon } from './UI';
+import { message, resolveMessage, type Feedback } from '../lib/form-feedback';
 export function ServerSlider({
   username,
   purpose,
@@ -17,9 +18,10 @@ export function ServerSlider({
   resetKey: number;
 }) {
   const track = useRef<HTMLDivElement>(null);
+  const keyboardHint = useId();
   const [position, setPosition] = useState(0),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState('');
+    [error, setError] = useState<Feedback>('');
   const drag = useRef({
     active: false,
     start: 0,
@@ -29,6 +31,7 @@ export function ServerSlider({
     generation: 0,
     tracks: [] as { x: number; t: number }[],
     challenge: null as Promise<{ captcha_id: string }> | null,
+    inputMode: 'pointer' as 'pointer' | 'keyboard',
   });
   function reset() {
     drag.current.generation++;
@@ -44,13 +47,31 @@ export function ServerSlider({
       drag.current.generation++;
     };
   }, [username, purpose, resetKey]);
+  function begin(inputMode: 'pointer' | 'keyboard') {
+    if (busy || proof || !username.trim()) return false;
+    reset();
+    const d = drag.current;
+    d.time = performance.now();
+    d.width = Math.max(0, (track.current?.clientWidth || 0) - 52);
+    d.pos = 0;
+    d.tracks = [{ x: 0, t: 0 }];
+    d.active = true;
+    d.inputMode = inputMode;
+    d.challenge = request('/auth/pub/slider/challenge', {
+      method: 'POST',
+      public: true,
+      body: { purpose, username: username.trim() },
+    });
+    void d.challenge.catch(() => {});
+    return true;
+  }
   async function end() {
     const d = drag.current;
     if (!d.active) return;
     d.active = false;
     if (d.pos < d.width - 2 || !d.challenge || d.width <= 0) {
       reset();
-      setError(t('app.captcha.sliderIncomplete'));
+      setError(message('app.captcha.sliderIncomplete'));
       return;
     }
     const generation = d.generation;
@@ -76,7 +97,7 @@ export function ServerSlider({
     } catch {
       if (generation === d.generation) {
         setPosition(0);
-        setError(t('app.captcha.sliderFailed'));
+        setError(message('app.captcha.sliderFailed'));
       }
     } finally {
       if (generation === d.generation) setBusy(false);
@@ -90,29 +111,26 @@ export function ServerSlider({
           type="button"
           className="slider-handle"
           name="captcha-action"
+          role="slider"
           aria-label={t('sliderHandle')}
+          aria-describedby={keyboardHint}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={drag.current.width ? Math.round((position / drag.current.width) * 100) : 0}
+          aria-valuetext={t('sliderProgress', {
+            count: drag.current.width ? Math.round((position / drag.current.width) * 100) : 0,
+          })}
           disabled={busy || !!proof || !username.trim()}
           style={{ transform: `translateX(${position}px)` }}
           onPointerDown={(e) => {
-            reset();
+            if (!begin('pointer')) return;
             const d = drag.current;
             d.start = e.clientX;
-            d.time = performance.now();
-            d.width = Math.max(0, (track.current?.clientWidth || 0) - 52);
-            d.pos = 0;
-            d.tracks = [{ x: 0, t: 0 }];
-            d.active = true;
             e.currentTarget.setPointerCapture(e.pointerId);
-            d.challenge = request('/auth/pub/slider/challenge', {
-              method: 'POST',
-              public: true,
-              body: { purpose, username: username.trim() },
-            });
-            void d.challenge.catch(() => {});
           }}
           onPointerMove={(e) => {
             const d = drag.current;
-            if (!d.active) return;
+            if (!d.active || d.inputMode !== 'pointer') return;
             d.pos = Math.min(d.width, Math.max(0, e.clientX - d.start));
             setPosition(d.pos);
             if (d.tracks.length < 127)
@@ -120,13 +138,42 @@ export function ServerSlider({
           }}
           onPointerUp={() => void end()}
           onPointerCancel={reset}
+          onKeyDown={(event) => {
+            if (!['ArrowRight', 'ArrowLeft', 'Home', 'Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            if (busy || proof) return;
+            if (event.key === 'Home') {
+              reset();
+              return;
+            }
+            if (event.key === 'Enter' || event.key === ' ') {
+              if (drag.current.active && drag.current.inputMode === 'keyboard') void end();
+              return;
+            }
+            if (!drag.current.active && (event.key !== 'ArrowRight' || !begin('keyboard'))) return;
+            const d = drag.current;
+            if (d.inputMode !== 'keyboard') return;
+            d.pos = Math.min(
+              d.width,
+              Math.max(0, d.pos + (event.key === 'ArrowRight' ? 1 : -1) * Math.ceil(d.width / 20)),
+            );
+            setPosition(d.pos);
+            if (d.tracks.length < 127)
+              d.tracks.push({ x: Math.round(d.pos), t: Math.round(performance.now() - d.time) });
+          }}
+          onBlur={() => {
+            if (drag.current.active && drag.current.inputMode === 'keyboard') reset();
+          }}
         >
           <Icon name={proof ? 'check' : 'chevron-right-double'} />
         </button>
       </div>
+      <p id={keyboardHint} className="slider-keyboard-hint">
+        {t('sliderKeyboard')}
+      </p>
       {error && (
         <p className="field-error" role="alert">
-          {error}
+          {resolveMessage(error)}
         </p>
       )}
     </div>
@@ -148,14 +195,16 @@ export function PointCaptcha({
   authenticated?: boolean;
 }) {
   const [selected, setSelected] = useState<CaptchaPoint[]>([]),
+    [cursor, setCursor] = useState<CaptchaPoint>({ x: captcha.width / 2, y: captcha.height / 2 }),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState('');
+    [error, setError] = useState<Feedback>('');
   const image = useRef<HTMLImageElement>(null);
   const generation = useRef(0);
   const path = authenticated ? '/auth/captcha' : '/auth/pub/captcha';
   useEffect(() => {
     generation.current++;
     setSelected([]);
+    setCursor({ x: captcha.width / 2, y: captcha.height / 2 });
     onPoints([]);
     setBusy(false);
     return () => {
@@ -209,7 +258,7 @@ export function PointCaptcha({
       else {
         setSelected([]);
         if (result.captcha) onCaptcha(result.captcha);
-        setError(t('app.captcha.failed'));
+        setError(message('app.captcha.failed'));
       }
     } catch (e) {
       if (current === generation.current) {
@@ -230,6 +279,9 @@ export function PointCaptcha({
       </div>
       <div
         className="captcha-image"
+        role="button"
+        tabIndex={0}
+        aria-label={`${t('captchaAlt')}. ${t('pointCaptchaKeyboard')}`}
         onClick={(e) => {
           const box = image.current?.getBoundingClientRect();
           if (box)
@@ -238,8 +290,57 @@ export function PointCaptcha({
               Math.round(((e.clientY - box.top) / box.height) * captcha.height),
             );
         }}
+        onKeyDown={(event) => {
+          if (
+            !['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'Enter', ' '].includes(
+              event.key,
+            )
+          )
+            return;
+          event.preventDefault();
+          if (event.key === 'Enter' || event.key === ' ') {
+            void select(Math.round(cursor.x), Math.round(cursor.y));
+            return;
+          }
+          const stepX = Math.max(1, captcha.width / 20);
+          const stepY = Math.max(1, captcha.height / 20);
+          setCursor((point) =>
+            event.key === 'Home'
+              ? { x: captcha.width / 2, y: captcha.height / 2 }
+              : {
+                  x: Math.min(
+                    captcha.width,
+                    Math.max(
+                      0,
+                      point.x +
+                        (event.key === 'ArrowRight'
+                          ? stepX
+                          : event.key === 'ArrowLeft'
+                            ? -stepX
+                            : 0),
+                    ),
+                  ),
+                  y: Math.min(
+                    captcha.height,
+                    Math.max(
+                      0,
+                      point.y +
+                        (event.key === 'ArrowDown' ? stepY : event.key === 'ArrowUp' ? -stepY : 0),
+                    ),
+                  ),
+                },
+          );
+        }}
       >
         <img ref={image} src={captcha.captcha_image} alt={t('captchaAlt')} />
+        <span
+          className="captcha-keyboard-cursor"
+          aria-hidden="true"
+          style={{
+            left: `${(cursor.x / captcha.width) * 100}%`,
+            top: `${(cursor.y / captcha.height) * 100}%`,
+          }}
+        />
         {selected.map((p, i) => (
           <span
             key={i}
@@ -255,7 +356,7 @@ export function PointCaptcha({
       </div>
       {error && (
         <p role="alert" className="field-error">
-          {error}
+          {resolveMessage(error)}
         </p>
       )}
       {points.length > 0 && <p className="success-text">{t('app.captcha.passed')}</p>}

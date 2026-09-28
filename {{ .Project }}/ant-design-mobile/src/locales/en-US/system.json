@@ -92,8 +92,6 @@
     "default": "Default",
     "loose": "Loose",
     "density": "Density",
-    "fullscreen": "Fullscreen",
-    "exitFullscreen": "Exit Fullscreen",
     "visibleColumns": "Visible Columns",
     "columns": "Columns",
     "style": "Table Style",

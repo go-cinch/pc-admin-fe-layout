@@ -65,6 +65,7 @@ export default function App() {
     auth = location.pathname.startsWith('/auth/');
   const [settings, setSettings] = useState(false),
     [tools, setTools] = useState(false),
+    [authTools, setAuthTools] = useState(false),
     [panel, setPanel] = useState(''),
     [query, setQuery] = useState(''),
     [tabs, setTabs] = useState([{ path: '/dashboard/overview', pinned: true }]),
@@ -74,6 +75,7 @@ export default function App() {
     [desktopShell, setDesktopShell] = useState(
       () => window.matchMedia('(min-width: 901px) and (min-height: 521px)').matches,
     ),
+    [wideAuth, setWideAuth] = useState(() => window.matchMedia('(min-width: 901px)').matches),
     [initialLoadingExpired, setInitialLoadingExpired] = useState(performance.now() >= 5000);
   const content = useRef<HTMLDivElement>(null);
   function clearLock() {
@@ -84,9 +86,17 @@ export default function App() {
   }
   useEffect(() => {
     const media = window.matchMedia('(min-width: 901px) and (min-height: 521px)');
-    const update = () => setDesktopShell(media.matches);
+    const authMedia = window.matchMedia('(min-width: 901px)');
+    const update = () => {
+      setDesktopShell(media.matches);
+      setWideAuth(authMedia.matches);
+    };
     media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
+    authMedia.addEventListener('change', update);
+    return () => {
+      media.removeEventListener('change', update);
+      authMedia.removeEventListener('change', update);
+    };
   }, []);
   useEffect(() => {
     void initializeSession();
@@ -126,6 +136,7 @@ export default function App() {
   }, [session.ready, pendingRequests]);
   useEffect(() => {
     setTools(false);
+    setAuthTools(false);
     content.current?.scrollTo({ top: 0 });
     if (!auth && canMenu(location.pathname))
       setTabs((all) =>
@@ -280,19 +291,52 @@ export default function App() {
         <>
           <header className="auth-topbar">
             {brand}
-            <div className="top-tools">
-              <IconButton name="palette" label={t('color')} onClick={() => setSettings(true)} />
+            <div className="auth-tools-wrap">
               <IconButton
-                name="layout"
-                label={t('panel')}
-                onClick={() => setPanel('loginPosition')}
+                name={authTools ? 'close' : 'ellipsis'}
+                label={t('more')}
+                expanded={authTools}
+                controls="auth-tools-menu"
+                onClick={() => setAuthTools((value) => !value)}
               />
-              <IconButton name="translate" label={t('language')} onClick={toggleLocale} />
-              <IconButton
-                name={p.dark ? 'sunny' : 'moon'}
-                label={t('theme')}
-                onClick={() => (p.dark = !p.dark)}
-              />
+              {authTools && (
+                <div id="auth-tools-menu" className="auth-tools-menu">
+                  <IconButton
+                    name="palette"
+                    label={t('color')}
+                    onClick={() => {
+                      setSettings(true);
+                      setAuthTools(false);
+                    }}
+                  />
+                  {wideAuth && (
+                    <IconButton
+                      name="layout"
+                      label={t('panel')}
+                      onClick={() => {
+                        setPanel('loginPosition');
+                        setAuthTools(false);
+                      }}
+                    />
+                  )}
+                  <IconButton
+                    name="translate"
+                    label={t('language')}
+                    onClick={() => {
+                      toggleLocale();
+                      setAuthTools(false);
+                    }}
+                  />
+                  <IconButton
+                    name={p.dark ? 'sunny' : 'moon'}
+                    label={t('theme')}
+                    onClick={() => {
+                      p.dark = !p.dark;
+                      setAuthTools(false);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </header>
           {routes}
@@ -555,7 +599,7 @@ export default function App() {
           </form>
         ) : null}
       </Sheet>
-      <Settings open={settings} onClose={() => setSettings(false)} />
+      <Settings open={settings} onClose={() => setSettings(false)} showLoginPosition={wideAuth} />
     </ConfigProvider>
   );
 }
