@@ -12,6 +12,7 @@ VBEN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'vben-antd-vue3'
 TAIL_TEMPLATE = LAYOUT / '{{ .Project }}' / 'tail-react'
 ART_TEMPLATE = LAYOUT / '{{ .Project }}' / 'art-eleplus-vue3'
 SHADCN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'shadcn-react'
+TDESIGN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'tdesign-vue3-mobile'
 SCAFFOLD = os.environ.get('SCAFFOLD', 'scaffold')
 DEFAULT_PRODUCTION_API_URL = 'https://entry.go-cinch.top/api/auth'
 ARTIFACT_NAMES = {
@@ -188,9 +189,38 @@ def validate_shadcn(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert_template_integrity(SHADCN_TEMPLATE, project)
 
 
+def validate_tdesign(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
+                     production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+    assert not (project / 'tdesign-vue3-mobile').exists()
+    assert not (project / 'vben-antd-vue3').exists()
+    assert not (project / 'apps').exists()
+    assert (project / 'LICENSE_TDESIGN').is_file()
+    assert (project / 'pnpm-lock.yaml').is_file()
+    package = json.loads((project / 'package.json').read_text())
+    assert package['name'] == project.name
+    assert package['dependencies']['tdesign-mobile-vue'] == '1.16.2'
+    assert package['packageManager'] == 'pnpm@10.2.0'
+    production_env = (project / '.env.production').read_text()
+    assert f'VITE_GLOB_API_URL={production_api_url}\n' in production_env
+    assert f'VITE_GLOB_AUTH_API_URL={production_auth_api_url}\n' in production_env
+    client = (project / 'src/lib/api.ts').read_text()
+    assert 'RSA-OAEP-256' in client and 'A256GCM' in client
+    assert 'Accept-Language' in client and 'x-idempotent' in client
+    assert 'VITE_GLOB_AUTH_API_URL' in client and '/api/auth' in client
+    router = (project / 'src/router.ts').read_text()
+    assert '/auth/reset-password' in router and 'canMenu' in router
+    for name in ['AuthPage.vue', 'OverviewPage.vue', 'ManagementPage.vue', 'ProfilePage.vue']:
+        assert (project / 'src/pages' / name).is_file()
+    vite = (project / 'vite.config.ts').read_text()
+    assert 'AUTH_PROXY_TARGET' in vite and 'VITE_PORT' in vite and 'strictPort' in vite
+    assert 'http://127.0.0.1' not in vite
+    assert_artifacts_excluded(project)
+    assert_template_integrity(TDESIGN_TEMPLATE, project)
+
+
 def validate_ant_mobile(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
                         production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
-    assert not any((project / x).exists() for x in ['ant-design-mobile', 'vben-antd-vue3', 'apps'])
+    assert not any((project / x).exists() for x in ['ant-design-mobile', 'tdesign-vue3-mobile', 'vben-antd-vue3', 'apps'])
     package = json.loads((project / 'package.json').read_text())
     assert package['name'] == project.name
     assert package['dependencies']['antd-mobile'] == '5.43.0'
@@ -297,6 +327,37 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
     validate_shadcn(output / 'shadcn-production-urls', custom_api_url, custom_auth_api_url)
     for name, options in {
+        'tdesign-explicit': ['ui=tdesign-vue3-mobile'],
+        'tdesign-alias': ['ui=tdesign-mobile'],
+        'tdesign-preset': ['--preset=tdesign-vue3-mobile'],
+        'tdesign-alias-preset': ['--preset=tdesign-mobile'],
+    }.items():
+        run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+             '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
+        validate_tdesign(output / name)
+        print(f'PASS {name}', flush=True)
+    run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+         '--run-hooks=always', '--no-prompt', 'Project=tdesign-production-urls',
+         'ui=tdesign-vue3-mobile', f'VITE_GLOB_API_URL={custom_api_url}',
+         f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
+    validate_tdesign(output / 'tdesign-production-urls', custom_api_url, custom_auth_api_url)
+    local_output = output / 'local-demos'
+    run(['make', 'local', 'DEMO=tdesign-vue3-mobile', f'DEMOS_DIR={local_output}'])
+    local_mobile = local_output / 'tdesign-vue3-mobile'
+    # The local environment is deliberately preserved; the source invariant checker
+    # excludes it, so remove only this test fixture while checking generated source.
+    local_env = local_mobile / '.env.development.local'
+    env_text = local_env.read_text()
+    assert 'VITE_PORT=' in env_text and 'AUTH_PROXY_TARGET=' in env_text
+    local_env.unlink()
+    validate_tdesign(local_mobile)
+    local_env.write_text('VITE_PORT=5999\nAUTH_PROXY_TARGET=http://127.0.0.1:8081\n')
+    run(['make', 'local', 'DEMO=tdesign-vue3-mobile', f'DEMOS_DIR={local_output}'])
+    assert local_env.read_text() == 'VITE_PORT=5999\nAUTH_PROXY_TARGET=http://127.0.0.1:8081\n'
+    run(['make', 'local', 'DEMO=custom-mobile', 'UI=tdesign-mobile', f'DEMOS_DIR={local_output}'])
+    assert (local_output / 'custom-mobile/src/main.ts').is_file()
+    print('PASS TDesign local selection, explicit override, environment preservation', flush=True)
+    for name, options in {
         'ant-mobile-explicit': ['ui=ant-design-mobile'],
         'ant-mobile-alias': ['ui=antd-mobile'],
         'ant-mobile-preset': ['--preset=ant-design-mobile'],
@@ -311,7 +372,6 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
          'ui=ant-design-mobile', f'VITE_GLOB_API_URL={custom_api_url}',
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
     validate_ant_mobile(output / 'ant-mobile-production', custom_api_url, custom_auth_api_url)
-    local_output = output / 'local-ant-demos'
     run(['make', 'local', 'DEMO=ant-design-mobile', f'DEMOS_DIR={local_output}'])
     generated_ant = local_output / 'ant-design-mobile'
     ant_env = generated_ant / '.env.development.local'
@@ -354,6 +414,15 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     run([SCAFFOLD, 'new', str(staged), f'--output-dir={output}',
          '--run-hooks=always', '--no-prompt', 'Project=isolated-ui'])
     validate_vben(output / 'isolated-ui')
+    mobile_staged = staged / '{{ .Project }}' / 'tdesign-vue3-mobile'
+    for relative in ['node_modules/fake/index.js', 'dist/index.html',
+                     '.env.development.local', '.vite/cache.json', 'install.log']:
+        artifact = mobile_staged / relative
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text('[[scaffold invalid template scaffold]]')
+    run([SCAFFOLD, 'new', str(staged), f'--output-dir={output}',
+         '--run-hooks=always', '--no-prompt', 'Project=isolated-mobile', 'ui=tdesign-mobile'])
+    validate_tdesign(output / 'isolated-mobile')
     print('PASS Make entry, hooks, invalid selectors, asset integrity, workspace closure', flush=True)
     # Existing root files must not be overwritten while flattening the UI.
     conflict = output / 'conflict-ui'
@@ -364,6 +433,14 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     assert (conflict / 'package.json').read_text() == 'existing project'
     assert not (conflict / 'apps').exists(), 'hook moved files before conflict check'
     assert 'destination already exists' in result.stdout + result.stderr, result.stdout + result.stderr
+    mobile_conflict = output / 'conflict-mobile'
+    mobile_conflict.mkdir()
+    (mobile_conflict / 'package.json').write_text('existing mobile project')
+    run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
+         '--run-hooks=always', '--no-prompt', '--overwrite',
+         'Project=conflict-mobile', 'ui=tdesign-mobile'], success=False)
+    assert (mobile_conflict / 'package.json').read_text() == 'existing mobile project'
+    assert not (mobile_conflict / 'src').exists()
     print('PASS UI selection, flat output, artifact exclusion, and collision protection', flush=True)
 
     ant_staged = staged / '{{ .Project }}' / 'ant-design-mobile'
