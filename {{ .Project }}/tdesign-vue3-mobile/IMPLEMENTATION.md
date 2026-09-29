@@ -65,11 +65,11 @@ E2E_FRONTEND=tdesign-vue3-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:567
 pnpm test:tdesign-vue3-mobile:full -- http://127.0.0.1:5670/
 ```
 
-The complete headless full suite reports **34 passed, 0 failed, 0 skipped**. Every intended full-mode case passed. This includes both built-in-record restoration cases, six-resource CRUD, associations, encrypted auth/reset/change, session invalidation, captcha interactions, review and temporary locking, permission boundaries, pagination/page size, table controls, batch cleanup, locale/copyright and responsive behavior.
+The complete headless full suite reports **38 passed, 0 failed, 0 skipped**. Every intended full-mode case passed. This includes both built-in-record restoration cases, six-resource CRUD, trimmed credential flows, associations, encrypted auth/reset/change, session invalidation, captcha interactions, review and temporary locking, permission boundaries, direct-entry/refresh and recoverable-error behavior, pagination/page size, table controls, batch cleanup, locale/copyright and responsive behavior. Dedicated Mobile Chromium and Mobile WebKit projects exercise touch verification, dock navigation and nested sheets.
 
 An additional UI-only cleanup audit searched all six resources for this task's unique test prefixes and found no residual records. The administrator identity and built-in dictionary switch were restored to their original values. Existing E2E worktree changes were preserved; only the new target suite, its package entry and documentation were added.
 
-Independent Chromium and WebKit checks passed real login, all six editor sheets, Escape behavior, 320px with 200% text, desktop layout, logout and absence of page errors. The full suite covers 320, 375, 390, 430, 768, 844 (landscape) and 1440px, plus dark mode, reduced transparency and reduced motion. Physical-device acceptance was not run.
+Independent Chromium and WebKit checks passed real login, touch and keyboard verification, nested-sheet behavior, all six editor sheets, Escape behavior, desktop layout, logout and absence of page errors. The full suite covers 320, 375, 390, 430, 768, 844 (landscape) and 1440px, plus dark mode, reduced transparency and reduced motion. Physical-device acceptance was not run.
 
 Tencent and Vben license contents are preserved in `LICENSE_TDESIGN` and `LICENSE_VBEN`; see `THIRD_PARTY_NOTICES.md` for provenance.
 

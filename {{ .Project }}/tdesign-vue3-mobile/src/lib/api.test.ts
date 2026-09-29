@@ -140,7 +140,7 @@ describe('credential transport', () => {
     );
     await api.saveResource(
       'user',
-      { username: 'single', password: 'x' },
+      { username: '  single  ', password: '  x  ' },
       undefined,
       'stable-idempotency',
     );

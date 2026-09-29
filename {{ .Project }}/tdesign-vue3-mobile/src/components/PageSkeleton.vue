@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = withDefaults(defineProps<{ variant?: 'list' | 'options' | 'overview' | 'page' }>(), {
-  variant: 'page',
-});
+const props = withDefaults(
+  defineProps<{ variant?: 'list' | 'options' | 'overview' | 'management' | 'profile' | 'page' }>(),
+  { variant: 'page' },
+);
 
 const rows = computed(() => {
   if (props.variant === 'options')
@@ -27,6 +28,27 @@ const rows = computed(() => {
         { type: 'rect' as const, width: '23%', height: '72px', marginLeft: '2%' },
       ],
       { type: 'rect' as const, width: '100%', height: '150px' },
+    ];
+  if (props.variant === 'management')
+    return [
+      { type: 'text' as const, width: '42%', height: '30px' },
+      { type: 'rect' as const, width: '100%', height: '48px' },
+      [
+        { type: 'rect' as const, width: '112px', height: '44px' },
+        { type: 'rect' as const, width: '176px', height: '44px', marginLeft: 'auto' },
+      ],
+      ...Array.from({ length: 5 }, () => ({
+        type: 'rect' as const,
+        width: '100%',
+        height: '72px',
+      })),
+    ];
+  if (props.variant === 'profile')
+    return [
+      { type: 'text' as const, width: '32%', height: '30px' },
+      { type: 'rect' as const, width: '100%', height: '210px' },
+      { type: 'rect' as const, width: '100%', height: '112px' },
+      { type: 'rect' as const, width: '100%', height: '48px' },
     ];
   return [
     { type: 'text' as const, width: '36%', height: '24px' },

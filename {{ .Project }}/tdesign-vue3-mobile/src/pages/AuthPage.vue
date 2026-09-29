@@ -13,7 +13,7 @@ import {
 } from '../lib/api';
 import type { PointCaptcha as Challenge, CaptchaPoint } from '../lib/types';
 import { rememberCredentials, rememberedCredentials } from '../lib/storage';
-import { nonempty } from '../lib/validation';
+import { nonempty, trimCredential } from '../lib/validation';
 import { t } from '../locales';
 import { preferences } from '../lib/preferences';
 import Field from '../components/Field.vue';
@@ -124,7 +124,10 @@ async function submit() {
   if (busy.value) return;
   errors.value = {};
   error.value = '';
-  if (mode.value !== 'password_reset' && !nonempty(username.value))
+  const normalizedUsername = trimCredential(username.value);
+  const normalizedPassword = trimCredential(password.value);
+  const normalizedConfirmation = trimCredential(confirmation.value);
+  if (mode.value !== 'password_reset' && !nonempty(normalizedUsername))
     errors.value.username = message('app.validation.username');
   if (
     mode.value === 'register' &&
@@ -132,8 +135,8 @@ async function submit() {
     unavailableUsername.value === username.value.trim()
   )
     errors.value.username = message('app.register.usernameExists');
-  if (!nonempty(password.value)) errors.value.password = message('app.validation.password');
-  if (mode.value !== 'login' && confirmation.value !== password.value)
+  if (!nonempty(normalizedPassword)) errors.value.password = message('app.validation.password');
+  if (mode.value !== 'login' && normalizedConfirmation !== normalizedPassword)
     errors.value.confirmation = message('page.profile.password.passwordMismatch');
   if (mode.value !== 'password_reset' && !captcha.value && !proof.value)
     errors.value.proof = message('app.validation.verification');
@@ -147,7 +150,7 @@ async function submit() {
   try {
     if (mode.value === 'register') {
       const available = await request<{ available: boolean }>(
-        `/auth/pub/register/username?username=${encodeURIComponent(username.value.trim())}`,
+        `/auth/pub/register/username?username=${encodeURIComponent(normalizedUsername)}`,
         { public: true },
       );
       if (!available.available) {
@@ -157,12 +160,16 @@ async function submit() {
     }
     const payload =
       mode.value === 'password_reset'
-        ? { new_password: password.value }
+        ? { new_password: normalizedPassword }
         : mode.value === 'register'
-          ? { username: username.value.trim(), password: password.value, slider_proof: proof.value }
+          ? {
+              username: normalizedUsername,
+              password: normalizedPassword,
+              slider_proof: proof.value,
+            }
           : {
-              username: username.value.trim(),
-              password: password.value,
+              username: normalizedUsername,
+              password: normalizedPassword,
               remember_me: remember.value,
               slider_proof: captcha.value ? undefined : proof.value,
               captcha_id: captcha.value?.captcha_id,
@@ -170,17 +177,17 @@ async function submit() {
             };
     const result = await submitCredentials(mode.value, payload);
     if (mode.value === 'register') {
-      rememberCredentials(username.value.trim(), password.value);
+      rememberCredentials(normalizedUsername, normalizedPassword);
       await router.push({ path: '/auth/login', query: { registered: '1' } });
     } else {
       if (mode.value === 'password_reset') {
         const entry = rememberedCredentials();
         if (
           entry &&
-          (entry.username === username.value || entry.username === session.user?.username)
+          (entry.username === normalizedUsername || entry.username === session.user?.username)
         )
-          rememberCredentials(entry.username, password.value);
-      } else rememberCredentials(username.value.trim(), password.value, remember.value);
+          rememberCredentials(entry.username, normalizedPassword);
+      } else rememberCredentials(normalizedUsername, normalizedPassword, remember.value);
       acceptSession(result);
       if (result.password_reset_required) {
         await router.replace('/auth/reset-password');

@@ -8,7 +8,7 @@ import { ApiError, loadUser, logout, session, submitCredentials } from '../lib/a
 import type { CaptchaPoint, PointCaptcha as Challenge } from '../lib/types';
 import { initials } from '../lib/format';
 import { t } from '../locales';
-import { nonempty } from '../lib/validation';
+import { nonempty, trimCredential } from '../lib/validation';
 import Icon from '../components/Icon.vue';
 import Sheet from '../components/Sheet.vue';
 import Field from '../components/Field.vue';
@@ -55,9 +55,13 @@ watch(passwordOpen, (open) => {
 async function submit() {
   errors.value = {};
   error.value = '';
-  if (!nonempty(oldPassword.value)) errors.value.old = message('app.validation.currentPassword');
-  if (!nonempty(newPassword.value)) errors.value.password = message('app.validation.password');
-  if (newPassword.value !== confirmation.value)
+  const normalizedOldPassword = trimCredential(oldPassword.value);
+  const normalizedNewPassword = trimCredential(newPassword.value);
+  const normalizedConfirmation = trimCredential(confirmation.value);
+  if (!nonempty(normalizedOldPassword))
+    errors.value.old = message('app.validation.currentPassword');
+  if (!nonempty(normalizedNewPassword)) errors.value.password = message('app.validation.password');
+  if (normalizedNewPassword !== normalizedConfirmation)
     errors.value.confirmation = message('page.profile.password.passwordMismatch');
   if (captcha.value && !points.value.length)
     errors.value.captcha = message('app.validation.verification');
@@ -68,8 +72,8 @@ async function submit() {
   busy.value = true;
   try {
     await submitCredentials('password_change', {
-      old_password: oldPassword.value,
-      new_password: newPassword.value,
+      old_password: normalizedOldPassword,
+      new_password: normalizedNewPassword,
       captcha_id: captcha.value?.captcha_id,
       captcha_points: points.value.length ? points.value : undefined,
     });

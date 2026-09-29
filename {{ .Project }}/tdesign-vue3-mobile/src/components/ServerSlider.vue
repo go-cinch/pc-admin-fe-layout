@@ -57,7 +57,11 @@ function start(event: PointerEvent) {
   if (!begin()) return;
   inputMode.value = 'pointer';
   startX = event.clientX;
-  (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  try {
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  } catch {
+    // Synthetic assistive-input events and older mobile engines may not expose pointer capture.
+  }
 }
 function move(event: PointerEvent) {
   if (!dragging.value || inputMode.value !== 'pointer') return;

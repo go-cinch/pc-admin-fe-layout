@@ -24,6 +24,13 @@ const authTools = ref<HTMLElement>();
 const toolsOpen = ref(false);
 const panel = ref('');
 const search = ref('');
+const routeSkeletonVariant = computed(() => {
+  if (route.path.startsWith('/system/')) return 'management';
+  if (route.path === '/dashboard/overview' && String(route.query.tab || 'home') === 'home')
+    return 'overview';
+  if (route.path === '/profile') return 'profile';
+  return 'page';
+});
 function closeAuthTools(event?: Event) {
   if (event && authTools.value?.contains(event.target as Node)) return;
   authToolsOpen.value = false;
@@ -211,6 +218,7 @@ async function signout() {
               <Icon name="palette" />
             </button>
             <button
+              class="login-position-control"
               :aria-label="t('panel')"
               :title="t('panel')"
               @click="
@@ -293,7 +301,7 @@ async function signout() {
           </div>
         </div>
         <main id="main" class="main">
-          <PageSkeleton v-if="routeSkeleton" />
+          <PageSkeleton v-if="routeSkeleton" :variant="routeSkeletonVariant" />
           <RouterView v-else :key="route.path" /><Copyright v-if="p.footer" />
         </main>
         <nav class="bottom-nav glass" :aria-label="t('workspace')">

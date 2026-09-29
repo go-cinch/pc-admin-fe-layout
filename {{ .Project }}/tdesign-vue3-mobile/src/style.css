@@ -1004,6 +1004,11 @@ svg {
   width: 100%;
   padding: 20px 0;
 }
+.page-skeleton-management,
+.page-skeleton-overview,
+.page-skeleton-profile {
+  padding: 18px 24px 0;
+}
 .page-skeleton-list,
 .page-skeleton-options {
   padding: 8px 0;
@@ -1750,10 +1755,17 @@ svg {
   }
 }
 @media (max-width: 1150px), (max-height: 600px) {
+  .login-position-control {
+    display: none !important;
+  }
+  .auth-tools-menu {
+    grid-template-columns: repeat(3, 44px);
+  }
   .studio {
     display: block;
     padding: 0;
-    max-width: 840px;
+    width: 100%;
+    max-width: none;
   }
   .device {
     display: block;

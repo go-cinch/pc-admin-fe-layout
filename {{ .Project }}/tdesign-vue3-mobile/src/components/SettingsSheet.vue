@@ -25,7 +25,7 @@ const visible = defineModel<boolean>({ default: false });
           :block="false"
           value="violet"
           :label="t('violet')" /></t-radio-group></Field
-    ><Field name="login-position" :label="t('panel')"
+    ><Field class="login-position-control" name="login-position" :label="t('panel')"
       ><t-radio-group v-model="p.loginPosition" class="radio-options"
         ><t-radio
           :block="false"

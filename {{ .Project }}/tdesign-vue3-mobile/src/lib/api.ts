@@ -10,6 +10,7 @@ import type {
   RecordData,
   PointCaptcha,
 } from './types';
+import { trimCredential } from './validation';
 
 const base = (import.meta.env.VITE_GLOB_AUTH_API_URL || '/api/auth').replace(/\/$/, '');
 const refreshKey = `cinch-mobile-session:${location.hostname}`;
@@ -237,10 +238,10 @@ export async function saveResource(
 ) {
   let body = { ...payload };
   if (resource === 'user') {
-    const password = body.password;
+    if (typeof body.username === 'string') body.username = trimCredential(body.username);
+    const password = trimCredential(body.password);
     delete body.password;
-    if (typeof password === 'string' && password.trim())
-      body = { ...body, ...(await encryptedCredential('register', { password })) };
+    if (password) body = { ...body, ...(await encryptedCredential('register', { password })) };
   }
   return request<RecordData>(`/${resource}${id ? `/${id}` : ''}`, {
     method: id ? 'PATCH' : 'POST',

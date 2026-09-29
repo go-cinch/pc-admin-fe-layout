@@ -7,7 +7,7 @@ import { ApiError, saveResource } from '../lib/api';
 import type { RecordData, ResourceKind } from '../lib/types';
 import { configs } from '../lib/resource-config';
 import { buildChangedPayload } from '../lib/update-payload';
-import { dictionaryKeyValid, nonempty } from '../lib/validation';
+import { dictionaryKeyValid, nonempty, trimCredential } from '../lib/validation';
 import { t } from '../locales';
 import Sheet from './Sheet.vue';
 import Field from './Field.vue';
@@ -64,6 +64,8 @@ function normalized(source: Record<string, unknown>) {
   const value = { ...source };
   if (props.resource === 'dictionary') value.value = JSON.parse(String(value.value));
   if (props.resource === 'user') {
+    value.username = trimCredential(value.username);
+    if (typeof value.password === 'string') value.password = trimCredential(value.password);
     value.role_id = Number(value.role_id || 0);
     if (!value.password) delete value.password;
     const metadata = { ...props.record?.metadata };
