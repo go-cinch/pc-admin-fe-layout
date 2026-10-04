@@ -95,6 +95,7 @@ def validate_vben(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert "|| '/api/auth'" in request
     config = (project / 'apps/web-antd/vite.config.ts').read_text()
     assert 'AUTH_PROXY_TARGET' in config and 'http://127.0.0.1' not in config
+    assert 'preview-local.go-cinch.top' in config
     assert 'nitroMock: false' in config
     assert_template_integrity(VBEN_TEMPLATE, project)
     return key
@@ -118,6 +119,7 @@ def validate_tail(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert_artifacts_excluded(project)
     vite = (project / 'vite.config.ts').read_text()
     assert 'AUTH_PROXY_TARGET' in vite and 'VITE_PORT' in vite
+    assert 'preview-local.go-cinch.top' in vite
     assert 'VITE_API_PROXY_URL' not in vite
     assert 'http://127.0.0.1' not in vite
     production_env = (project / '.env.production').read_text()
@@ -145,6 +147,7 @@ def validate_art(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert_artifacts_excluded(project)
     vite = (project / 'vite.config.ts').read_text()
     assert 'AUTH_PROXY_TARGET' in vite and 'VITE_PORT' in vite
+    assert 'preview-local.go-cinch.top' in vite
     assert 'VITE_API_PROXY_URL' not in vite
     assert 'http://127.0.0.1' not in vite
     production_env = (project / '.env.production').read_text()
@@ -213,6 +216,7 @@ def validate_tdesign(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
         assert (project / 'src/pages' / name).is_file()
     vite = (project / 'vite.config.ts').read_text()
     assert 'AUTH_PROXY_TARGET' in vite and 'VITE_PORT' in vite and 'strictPort' in vite
+    assert 'preview-local.go-cinch.top' in vite
     assert 'http://127.0.0.1' not in vite
     assert_artifacts_excluded(project)
     assert_template_integrity(TDESIGN_TEMPLATE, project)
