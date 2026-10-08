@@ -140,6 +140,15 @@ login, captchas, registration, token refresh, password reset, profile settings,
 and system management pages. Their original license and framework-native visual
 systems are retained.
 
+All six frontends use a searchable local account history on the login page.
+Only successful login account names are saved, with the ten most recent unique
+accounts scoped to the current hostname. Users can select, remove, or clear
+history. Successful registration passes the new account and password to the login
+form once in memory; refreshing or leaving the login page clears that password.
+Other login visits start with an empty password. Remember-me controls and
+application password saving are removed, and legacy saved credentials are deleted
+at startup.
+
 It retains Vben's pnpm monorepo structure and generates only the
 `apps/web-antd` UI application. Other UI applications, backend-mock, playground,
 the documentation site, node_modules, build artifacts, and Git history are
