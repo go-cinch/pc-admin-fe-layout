@@ -1,1 +1,1 @@
-<t-textarea  aria-label="{{label}}" value="{{value}}" placeholder="{{placeholder}}" disabled="{{disabled}}" maxlength="{{-1}}" borderless="{{true}}" bind:change="change" bind:blur="blur" />
+<t-textarea  aria-label="{{label}}" value="{{value}}" placeholder="{{placeholder}}" disabled="{{disabled}}" maxlength="{{-1}}" borderless="{{true}}" bind:change="change" bind:blur="blur" bind:focus="focus" />

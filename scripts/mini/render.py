@@ -8,9 +8,9 @@ ROOT=Path(__file__).resolve().parents[2]
 TEMPLATES=ROOT/'{{ .Project }}'
 HERE=Path(__file__).parent
 routes=['/dashboard/overview','/dashboard/workspace','/system/user','/system/role','/system/user-group','/system/action','/system/dictionary','/system/whitelist','/system/msg','/msg/inbox','/profile','/auth/login','/auth/register','/auth/reset-password']
-icons={'users':'UserSetOutline','shield':'CheckShieldOutline','grid':'AppOutline','key':'KeyOutline','book':'TextOutline','check':'CheckOutline','bell':'BellOutline','home':'AppOutline','user':'UserOutline','back':'LeftOutline','more':'MoreOutline','search':'SearchOutline','refresh':'RedoOutline','density':'UnorderedListOutline','columns':'SetOutline','chevron':'RightOutline','close':'CloseOutline','moon':'MoonOutline','globe':'GlobalOutline','settings':'SetOutline'}
-wicons={'users':'user-group','shield':'safe','grid':'apps','key':'lock','book':'book','check':'check','bell':'notification','home':'home','user':'user','back':'arrow-left','more':'more','search':'search-line','refresh':'refresh','density':'unordered-list','columns':'layout','chevron':'arrow-right','close':'close','moon':'moon','globe':'application','settings':'settings'}
-ticons={'users':'usergroup','shield':'secured','grid':'app','key':'key','book':'book','check':'check','bell':'notification','home':'home','user':'user','back':'chevron-left','more':'more','search':'search','refresh':'refresh','density':'view-list','columns':'view-column','chevron':'chevron-right','close':'close','moon':'moon','globe':'earth','settings':'setting'}
+icons={'users':'UserSetOutline','shield':'CheckShieldOutline','grid':'AppOutline','key':'KeyOutline','book':'TextOutline','check':'CheckOutline','bell':'BellOutline','home':'AppOutline','user':'UserOutline','back':'LeftOutline','more':'MoreOutline','search':'SearchOutline','refresh':'RedoOutline','density':'UnorderedListOutline','columns':'SetOutline','chevron':'RightOutline','close':'CloseOutline','moon':'MoonOutline','globe':'GlobalOutline','settings':'SetOutline','clock':'ClockCircleOutline','layers':'AppOutline','layout':'UnorderedListOutline'}
+wicons={'users':'user-group','shield':'safe','grid':'apps','key':'lock','book':'book','check':'check','bell':'notification','home':'home','user':'user','back':'arrow-left','more':'more','search':'search-line','refresh':'refresh','density':'unordered-list','columns':'layout','chevron':'arrow-right','close':'close','moon':'moon','globe':'application','settings':'settings','clock':'clock-circle','layers':'copy','layout':'layout'}
+ticons={'users':'usergroup','shield':'secured','grid':'app','key':'key','book':'book','check':'check','bell':'notification','home':'home','user':'user','back':'chevron-left','more':'more','search':'search','refresh':'refresh','density':'view-list','columns':'view-column','chevron':'chevron-right','close':'close','moon':'moon','globe':'earth','settings':'setting','clock':'time','layers':'layers','layout':'layout'}
 markup=(HERE/'screen.wxml').read_text().replace('/assets/','/static/')
 def write(p,s):p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s)
 def dump(p,obj):write(p,json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
@@ -42,12 +42,12 @@ for ui,variant in [('ant-design-mini','ant'),('tdesign-mini','tdesign')]:
    attrs='type="{{kind === \'primary\' ? \'primary\' : kind === \'text\' ? \'text\' : \'default\'}}" danger="{{kind === \'danger\'}}"' if ant else 'theme="{{kind === \'danger\' ? \'danger\' : kind === \'primary\' ? \'primary\' : \'default\'}}" variant="{{kind === \'text\' ? \'text\' : kind === \'primary\' ? \'base\' : \'outline\'}}"'
    write(folder/'index.wxml',f'<{prefix}-button style="width:100%;min-height:44px;border-radius:10px" {attrs} disabled="{{{{disabled}}}}" loading="{{{{loading}}}}" bindtap="press"><slot /></{prefix}-button>\n')
   elif name in ['input','textarea']:
-   write(folder/'index.ts',"Component({ options: { styleIsolation: 'shared' }, properties: { name: String, label: String, value: { type: null, value: '' }, placeholder: String, password: Boolean, disabled: Boolean }, methods: { change(e: any) { const value = e.detail?.value ?? e.detail; this.triggerEvent('change', { name: this.data.name, value }) }, blur() { this.triggerEvent('blur') } } });\n")
+   write(folder/'index.ts',"Component({ options: { styleIsolation: 'shared' }, properties: { name: String, label: String, value: { type: null, value: '' }, placeholder: String, password: Boolean, disabled: Boolean }, methods: { change(e: any) { const value = e.detail?.value ?? e.detail; this.triggerEvent('change', { name: this.data.name, value }) }, blur() { this.triggerEvent('blur', { name: this.data.name }) }, focus() { this.triggerEvent('focus', { name: this.data.name }) } } });\n")
    attrs='controlled="{{true}}" maxLength="{{-1}}"' if ant else 'maxlength="{{-1}}" borderless="{{true}}"'
    event='bind:change="change"' if ant else ('bind:change="change"' if name=='input' else 'bind:change="change"')
    if name=='input':attrs+= ' password="{{password}}" type="text"' if ant else ' type="{{password ? \'password\' : \'text\'}}"'
    extra = 'style="padding:12px;min-height:46px;box-sizing:border-box"' if ant else ''
-   write(folder/'index.wxml',f'<{prefix}-{name} {extra} aria-label="{{{{label}}}}" value="{{{{value}}}}" placeholder="{{{{placeholder}}}}" disabled="{{{{disabled}}}}" {attrs} {event} bind:blur="blur" />\n')
+   write(folder/'index.wxml',f'<{prefix}-{name} {extra} aria-label="{{{{label}}}}" value="{{{{value}}}}" placeholder="{{{{placeholder}}}}" disabled="{{{{disabled}}}}" {attrs} {event} bind:blur="blur" bind:focus="focus" />\n')
   elif name=='switch':
    write(folder/'index.ts',"Component({ options: { styleIsolation: 'shared' }, properties: { name: String, checked: Boolean }, methods: { change(e: any) { this.triggerEvent('change', { name: this.data.name, value: e.detail?.value ?? e.detail }) } } });\n")
    control = 'controlled="{{true}}"' if ant else ''
@@ -89,7 +89,7 @@ def vue_tag(match):
   tag=re.sub(r'wx:key="[^"]+"',f':key="{idx if keyval=="index" else item if keyval=="*this" else item+"."+keyval}"',tag)
  tag=tag.replace('wx:if=','v-if=').replace('wx:elif=','v-else-if=').replace('wx:else','v-else')
  tag=re.sub(r'(v-if|v-else-if)="{{(.*?)}}"',r'\1="\2"',tag)
- tag=tag.replace('bindtap="onAction"','@tap="onAction"').replace('bind:press=','@press=').replace('bind:change=','@change=').replace('bind:blur=','@blur=')
+ tag=tag.replace('bindtap="onAction"','@tap="onAction"').replace('bind:press=','@press=').replace('bind:change=','@change=').replace('bind:blur=','@blur=').replace('bind:focus=','@focus=')
  tag=tag.replace('bindtouchstart=','@touchstart=').replace('catchtouchmove=','@touchmove.stop.prevent=').replace('bindtouchend=','@touchend=').replace('bindtouchcancel=','@touchcancel=').replace('bindtap="onPoint"','@tap="onPoint"')
  def attr(m):
   key,val=m.groups()
@@ -120,6 +120,8 @@ onBeforeUnmount(()=>screen.dispose());onShow(()=>screen.show());onHide(()=>scree
 function onAction(e:any){void screen.action(e.action||e.detail?.action||e.currentTarget?.dataset.a,String(e.arg??e.detail?.arg??e.currentTarget?.dataset.v??''))}
 function onInput(e:any){const d=e.detail||e;screen.input(d.name,d.value)}
 function onSearchBlur(){screen.blurSearch()}
+function onFieldFocus(e:any){screen.focusField((e.detail||e).name)}
+function onFieldBlur(e:any){screen.blurField((e.detail||e).name)}
 function box(id:string,fn:(b:any)=>void){uni.createSelectorQuery().in(instance?.proxy).select(id).boundingClientRect(fn).exec()}
 function onSliderStart(e:any){const x=e.touches[0].clientX;box('#slider-track',b=>{if(b)screen.beginSlider(x,b.width)})}
 function onSliderMove(e:any){screen.moveSlider(e.touches[0].clientX)}
@@ -139,9 +141,9 @@ for name in ['Input','Textarea']:
  tag='input' if name=='Input' else 'textarea'
  write(src/f'components/C{name}.vue',f'''<script setup lang="ts">
 const props=defineProps<{{name:string;value:any;label?:string;placeholder?:string;password?:boolean;disabled?:boolean}}>();
-const emit=defineEmits<{{change:[value:{{name:string;value:any}}];blur:[]}}>();
+const emit=defineEmits<{{change:[value:{{name:string;value:any}}];blur:[value:{{name:string}}];focus:[value:{{name:string}}]}}>();
 function change(value:any){{emit('change',{{name:props.name,value}})}}
-</script><template><view class="c-{tag}"><wd-{tag} :model-value="value" :aria-label="label" :placeholder="placeholder" :disabled="disabled" {':show-password="password" type="text"' if name=='Input' else ':auto-height="false"'} :maxlength="-1" @update:model-value="change" @blur="emit('blur')" /></view></template>
+</script><template><view class="c-{tag}"><wd-{tag} :model-value="value" :aria-label="label" :placeholder="placeholder" :disabled="disabled" {':show-password="password" type="text"' if name=='Input' else ':auto-height="false"'} :maxlength="-1" @update:model-value="change" @blur="emit('blur',{{name:props.name}})" @focus="emit('focus',{{name:props.name}})" /></view></template>
 ''')
 write(src/'components/CSwitch.vue','''<script setup lang="ts">
 const props=defineProps<{name:string;checked:any}>();const emit=defineEmits<{change:[value:{name:string;value:boolean}]}>();

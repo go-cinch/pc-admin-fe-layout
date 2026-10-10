@@ -130,3 +130,52 @@ test('browserless WeChat bundle initializes and encrypts without window.crypto',
   const result = await compactDecrypt(encrypted, keys.privateKey);
   assert.deepEqual(JSON.parse(new TextDecoder().decode(result.plaintext)), { challenge_id: 'native', password: 'p' });
 });
+
+test('logged-out settings retain credentials and persist all preference groups', async () => {
+  const f = fixture(); const screen = new Screen(f.client, 'ant', () => {}); screen.route = '/auth/login';
+  screen.input('auth.username', 'alice'); screen.input('auth.password', 'typed-secret');
+  screen.captcha = { captcha_id: 'login-captcha' } as any; screen.captchaVerified = true;
+  await screen.action('settings'); assert.equal(screen.snapshot().settingsOpen, true);
+  screen.input('preference.dark', true); screen.input('preference.reducedTransparency', true);
+  screen.input('preference.footer', false); await screen.action('accent', 'green');
+  await screen.action('language'); await screen.action('language-value', 'en-US');
+  assert.equal(screen.sheet?.type, 'settings'); assert.equal(f.client.locale, 'en-US');
+  await screen.action('timezone'); await screen.action('timezone-value', 'UTC');
+  await screen.action('preferences'); screen.input('form.company', 'Example'); screen.input('form.year', '');
+  await screen.action('save-preferences'); assert.equal(screen.sheet?.type, 'settings');
+  await screen.action('close'); assert.equal(screen.snapshot().settingsOpen, false);
+  assert.equal(screen.captcha?.captcha_id, 'login-captcha'); assert.equal(screen.captchaVerified, true);
+  assert.equal(screen.auth.username, 'alice'); assert.equal(screen.auth.password, 'typed-secret');
+  const next = new Screen(f.client, 'ant', () => {});
+  assert.deepEqual([next.preferences.dark, next.preferences.reducedTransparency, next.preferences.footer, next.preferences.accent, next.preferences.timezone, next.preferences.company], [true,true,false,'green','UTC','Example']);
+  assert.ok(!JSON.stringify([...f.storage.values()]).includes('typed-secret'));
+  screen.dispose(); next.dispose();
+});
+test('account history is usernames-only; selection clears password and supports deletion', async () => {
+  const f = fixture(); f.storage.set(f.client.prefix+'accounts', [' alice ', 'alice', 'bob', '', { password: 'never' }]);
+  f.storage.set(f.client.prefix+'username', 'legacy');
+  const screen = new Screen(f.client, 'ant', () => {}); screen.route = '/auth/login';
+  assert.deepEqual(screen.accounts, ['alice','bob']); assert.equal(f.storage.has(f.client.prefix+'username'), false);
+  screen.input('auth.password', 'secret'); await screen.action('account-pick', 'bob');
+  assert.equal(screen.auth.username, 'bob'); assert.equal(screen.auth.password, '');
+  await screen.action('account-remove', 'alice'); assert.deepEqual(screen.accounts, ['bob']);
+  await screen.action('accounts-clear'); assert.deepEqual(screen.accounts, []); assert.equal(f.storage.has(f.client.prefix+'accounts'), false);
+  assert.equal('remember' in screen.auth, false); screen.dispose();
+});
+test('stale username verification cannot replace the current account captcha', async () => {
+  const pending: ((value: any) => void)[] = [];
+  const f = fixture(async () => new Promise(resolve => pending.push(resolve)));
+  const screen = new Screen(f.client, 'wot', () => {}); screen.route = '/auth/login';
+  screen.input('auth.username', 'first'); const first = screen.verifyUsername();
+  screen.input('auth.username', 'second'); const second = screen.verifyUsername();
+  pending[1]({status:200,data:{captcha:{captcha_id:'current'}}}); await second;
+  pending[0]({status:200,data:{captcha:{captcha_id:'stale'}}}); await first;
+  assert.equal(screen.captcha?.captcha_id, 'current'); assert.equal(screen.usernameBusy, false); screen.dispose();
+});
+test('registration rechecks availability before submitting encrypted credentials', async () => {
+  const f = fixture(async () => ({status:200,data:{available:false}}));
+  const screen = new Screen(f.client, 'tdesign', () => {}); screen.route = '/auth/register';
+  screen.auth.username='taken'; screen.auth.password='p'; screen.auth.confirmation='p'; screen.proof='proof';
+  await screen.login(); assert.ok(screen.errors.username); assert.equal(f.calls.length,1);
+  assert.ok(f.calls[0].url.includes('/auth/pub/register/username?username=taken')); screen.dispose();
+});

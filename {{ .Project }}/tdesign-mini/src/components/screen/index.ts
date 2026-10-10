@@ -12,6 +12,8 @@ const definition: any = {
   methods: {
     onAction(this: any, e: any) { const data = e.currentTarget.dataset; void this.screen.action(e.detail?.action || data.a, String(e.detail?.arg ?? data.v ?? '')) },
     onInput(this: any, e: any) { this.screen.input(e.detail.name, e.detail.value) },
+    onFieldFocus(this: any, e: any) { this.screen.focusField(e.detail.name) },
+    onFieldBlur(this: any, e: any) { this.screen.blurField(e.detail.name) },
     onSearchBlur(this: any) { this.screen.blurSearch() },
     onSliderStart(this: any, e: any) { const x = e.touches[0].clientX; this.createSelectorQuery().select('#slider-track').boundingClientRect((box: any) => { if (box) this.screen.beginSlider(x, box.width) }).exec() },
     onSliderMove(this: any, e: any) { this.screen.moveSlider(e.touches[0].clientX) },

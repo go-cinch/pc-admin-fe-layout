@@ -2,6 +2,7 @@ export interface Response { status: number; data: any }
 export interface Platform {
   native?: boolean;
   topInset?: number;
+  theme?(dark: boolean): void;
   request(url: string, options: { method: string; data?: unknown; headers: Record<string, string> }): Promise<Response>;
   read(key: string): unknown;
   write(key: string, value: unknown): void;
@@ -20,6 +21,7 @@ export function pageURL(route: string): string {
 export function createNativePlatform(api: any): Platform {
   return {
     native: true,
+    theme: dark => { api.setNavigationBarColor?.({ frontColor: dark ? '#ffffff' : '#000000', backgroundColor: dark ? '#1c1c24' : '#ffffff' }) },
     topInset: api.getWindowInfo?.().statusBarHeight || 24,
     request: (url, options) => new Promise((resolve, reject) => api.request({ url, method: options.method, data: options.data, header: options.headers, timeout: 20000, success: (r: any) => resolve({ status: r.statusCode, data: r.data }), fail: reject })),
     read: key => { try { return api.getStorageSync(key) } catch { return undefined } },

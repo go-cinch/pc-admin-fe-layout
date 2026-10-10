@@ -2,6 +2,7 @@ import { Client, ApiError } from './client';
 import { getConfigs, type ResourceConfig } from './resources';
 import { pageURL, type MiniConfig } from './platform';
 import { randomID } from './jwe';
+import { readAccounts, saveAccounts } from './accounts';
 import { dictionaryKeyValid } from './validation';
 import { buildChangedPayload } from './update-payload';
 import { formatDate, parseDate, systemTimezone, text } from './format';
@@ -20,19 +21,20 @@ const labels: Record<string, string> = {
   home: 'home', manage: 'managing', security: 'security', mine: 'mine', all: 'all', search: 'system.common.search', reset: 'system.common.reset',
   create: 'system.common.create', edit: 'system.common.edit', remove: 'system.common.delete', refresh: 'refresh', filter: 'filterTitle',
   detail: 'detail', close: 'close', cancel: 'cancel', save: 'save', confirm: 'confirm', back: 'back', username: 'system.fields.username',
-  password: 'system.fields.password', remember: 'remembered', usernameHint: 'passwordNotStored', login: 'page.auth.login', register: 'page.auth.register',
+  password: 'system.fields.password', login: 'page.auth.login', register: 'page.auth.register',
   verification: 'verification', passed: 'verified', slider: 'slider', more: 'more', common: 'common', latest: 'latest', review: 'needsReview',
   reviewAction: 'system.user.review', total: 'userTotal', userOverview: 'userOverview', noData: 'empty', emptyHint: 'emptyHint', retry: 'retry',
   select: 'select', selected: 'selected', allSelect: 'system.common.selectAll', done: 'confirm', prev: 'previous', next: 'next', pageSize: 'pageSize',
   density: 'density', fields: 'fields', style: 'listStyle', lock: 'lockNow', language: 'language', dark: 'theme', profile: 'profile', passwordChange: 'password',
   logout: 'logout', settings: 'settings', session: 'sessionOnly', unread: 'unread', read: 'read', messages: 'messages', allRead: 'allRead', send: 'app.msg.send',
   requiredReset: 'resetRequired', continue: 'app.resetPassword.submit', loading: 'loading', noAccess: 'noAccess', footer: 'footerVisible',
+  interfaceSettings: 'interfaceSettings', appearance: 'appearance', general: 'general', layout: 'layout', reduced: 'reduceTransparency', reducedHint: 'reduceTransparencyHint', color: 'accentColor', settingsSaved: 'settingsSaved', settingsDescription: 'settingsDescription', copyrightInfo: 'copyrightInfo', copyrightHiddenHint: 'copyrightHiddenHint', autoYearHint: 'autoYearHint', history: 'accountHistory', clearAccounts: 'clearAccountHistory', noMatchingAccounts: 'noMatchingAccounts', createAccountLink: 'createAccountLink', backToLoginLink: 'backToLoginLink',
   copyright: 'copyright', copyrightVisible: 'copyrightVisible', timezone: 'timezone', loadMore: 'loadMore', suggestions: 'suggestions', clearHistory: 'clearHistory',
 };
 interface Validation { key: string; vars?: Record<string, unknown> }
 interface Field { key: string; label: string; kind: string; required: boolean; value: any; error: string; placeholder: string; display: string }
 interface Sheet { type: string; title: string; id?: number; field?: string; [key: string]: any }
-interface Preferences { dark: boolean; timezone: string; footer: boolean; copyright: boolean; year: string; company: string; companyLink: string; icp: string; icpLink: string; density: string; style: string; columns: Record<string, string[]> }
+interface Preferences { accent: 'default' | 'green' | 'violet'; reducedTransparency: boolean; dark: boolean; timezone: string; footer: boolean; copyright: boolean; year: string; company: string; companyLink: string; icp: string; icpLink: string; density: string; style: string; columns: Record<string, string[]> }
 
 export class Screen {
   route = '/dashboard/overview';
@@ -66,7 +68,12 @@ export class Screen {
   searchFocus = false;
   unread = 0;
   messageRead = 'all';
-  auth = { username: '', password: '', confirmation: '', old: '', remember: false };
+  auth = { username: '', password: '', confirmation: '', old: '' };
+  accounts: string[] = [];
+  accountFocused = false;
+  usernameBusy = false;
+  private usernameRevision = 0;
+  private accountBlurTimer: ReturnType<typeof setTimeout> | undefined;
   captcha: PointCaptcha | null = null;
   captchaPoints: CaptchaPoint[] = [];
   captchaVerified = false;
@@ -102,9 +109,10 @@ export class Screen {
   private optionLabels = new Map<string, string>();
   constructor(public client: Client, public variant: MiniConfig['variant'], private publish: (vm: any) => void) {
     const stored = client.platform.read(client.prefix + 'preferences') as Partial<Preferences> | undefined;
-    this.preferences = { dark: false, timezone: systemTimezone(), footer: true, copyright: true, year: String(new Date().getFullYear()), company: 'go-cinch', companyLink: 'https://github.com/go-cinch/demos', icp: '', icpLink: '', density: 'comfortable', style: variant === 'wot' ? 'cards' : 'grouped', columns: {}, ...stored };
-    this.auth.username = String(client.platform.read(client.prefix + 'username') || '');
-    this.auth.remember = !!this.auth.username;
+    this.preferences = { accent: 'default', reducedTransparency: false, dark: false, timezone: systemTimezone(), footer: true, copyright: true, year: '', company: 'go-cinch', companyLink: 'https://github.com/go-cinch/demos', icp: '', icpLink: '', density: 'comfortable', style: variant === 'wot' ? 'cards' : 'grouped', columns: {}, ...stored };
+    client.platform.write(client.prefix + 'username', undefined);
+    this.accounts = readAccounts(client.platform, client.prefix);
+    client.platform.theme?.(this.preferences.dark);
     if (client.registrationLogin) { Object.assign(this.auth, client.registrationLogin); client.registrationLogin = null }
   }
   t = (key: string, vars: Record<string, unknown> = {}) => this.client.t(key, vars);
@@ -113,7 +121,7 @@ export class Screen {
   get isAuth() { return this.route.startsWith('/auth/') }
   get isSent() { return this.route === '/system/msg' }
   get authenticatedCaptcha() { return this.sheet?.type === 'password' }
-  get dirty() { return ['edit', 'password', 'compose', 'preferences'].includes(this.sheet?.type || '') && JSON.stringify(this.form) !== JSON.stringify(this.initial) }
+  get dirty() { return ['edit', 'password', 'compose', 'preferences', 'timezone'].includes(this.sheet?.type || '') && JSON.stringify(this.form) !== JSON.stringify(this.initial) }
   fieldError(key: string) { const error = this.errors[key]; if (!error) return ''; const field = this.config.fields.find(f => f.key === key); return this.t(error.key, error.vars?.field && field ? { ...error.vars, field: field.label } : error.vars) }
   can(operation: string) { return this.client.can(this.resource, operation) }
   date(value: unknown) { return formatDate(value, this.preferences.timezone) }
@@ -141,14 +149,14 @@ export class Screen {
   }
   show() { this.visible = true; if (!this.isAuth && this.client.accessToken && !this.client.resetRequired) void this.countMessages() }
   hide() { this.visible = false; this.resetSlider() }
-  dispose() { this.disposed = true; this.revision++; this.optionsRevision++; this.suggestRevision++; this.captchaRevision++; this.resetSlider(); this.timers.forEach(clearTimeout); clearTimeout(this.inputTimer); clearTimeout(this.blurTimer); if (this.polling) clearInterval(this.polling); this.auth.password = ''; this.auth.old = ''; this.auth.confirmation = ''; this.form = {} }
+  dispose() { this.disposed = true; this.revision++; this.optionsRevision++; this.suggestRevision++; this.captchaRevision++; this.usernameRevision++; clearTimeout(this.accountBlurTimer); this.resetSlider(); this.timers.forEach(clearTimeout); clearTimeout(this.inputTimer); clearTimeout(this.blurTimer); if (this.polling) clearInterval(this.polling); this.auth.password = ''; this.auth.old = ''; this.auth.confirmation = ''; this.form = {} }
   errorMessage(e: unknown) { return e instanceof Error ? e.message : this.t('requestError') }
   navigate(route: string, force = false) {
     if (this.busy && !force) return;
     if (!force && this.dirty) { this.push({ type: 'discard', title: 'unsavedTitle', destination: route }); return }
     this.client.platform.navigate(pageURL(route));
   }
-  persist() { this.client.platform.write(this.client.prefix + 'preferences', this.preferences) }
+  persist() { this.client.platform.write(this.client.prefix + 'preferences', this.preferences); this.client.platform.theme?.(this.preferences.dark) }
   emit() { if (!this.disposed) this.publish(this.snapshot()) }
   async load() {
     if (this.isAuth || ['manage', 'profile', 'security'].includes(this.view)) { this.emit(); return }
@@ -187,20 +195,57 @@ export class Screen {
     if (this.busy && !force) return;
     if (!force && this.dirty) { this.push({ type: 'discard', title: 'unsavedTitle' }); return }
     this.optionsRevision++; this.sheets.pop(); this.sheetError = ''; this.errors = {};
-    if (!this.sheets.length) { this.form = {}; this.initial = {}; this.captcha = null; this.captchaPoints = []; this.captchaVerified = false }
+    if (!this.sheets.length) { this.form = {}; this.initial = {}; if (!this.isAuth) { this.captcha = null; this.captchaPoints = []; this.captchaVerified = false } }
     this.emit();
   }
   input(key: string, value: unknown) {
     if (key.startsWith('auth.')) {
-      const field = key.slice(5); (this.auth as any)[field] = field === 'remember' ? !!value : String(value);
-      if (field === 'username' || field === 'password') { this.resetSlider(); this.captcha = null; this.captchaPoints = []; this.captchaVerified = false; this.captchaRevision++ }
-      if (field === 'remember' && !value) this.client.platform.write(this.client.prefix + 'username', undefined);
+      const field = key.slice(5); if (!['username', 'password', 'confirmation', 'old'].includes(field)) return; (this.auth as any)[field] = String(value);
+      if (field === 'username' || field === 'password') this.resetSlider();
+      if (field === 'username') { this.accountFocused = this.route === '/auth/login'; this.usernameRevision++; this.usernameBusy = false; this.captcha = null; this.captchaPoints = []; this.captchaVerified = false; this.captchaRevision++ }
       delete this.errors[field];
+    } else if (key.startsWith('preference.')) {
+      const field = key.slice(11);
+      if (['dark', 'reducedTransparency', 'footer'].includes(field)) { (this.preferences as any)[field] = !!value; this.persist() }
     } else if (key.startsWith('form.')) { const field = key.slice(5); this.form[field] = value; delete this.errors[field] }
     else if (key.startsWith('filter.')) this.filters[key.slice(7)] = value;
     else if (key === 'search') { this.query = String(value); this.page = 1; this.searchFocus = true; if (this.view === 'list') this.suggest(); }
     else if (key === 'picker') { this.optionsQuery = String(value); clearTimeout(this.inputTimer); this.inputTimer = setTimeout(() => void this.loadOptions(true), 250) }
     this.emit();
+  }
+  focusField(name: string) {
+    if (name === 'auth.username' && this.route === '/auth/login') {
+      clearTimeout(this.accountBlurTimer); this.accounts = readAccounts(this.client.platform, this.client.prefix); this.accountFocused = true; this.emit();
+    }
+  }
+  blurField(name: string) {
+    if (name === 'search') { this.blurSearch(); return }
+    if (name === 'auth.username') {
+      clearTimeout(this.accountBlurTimer);
+      this.accountBlurTimer = setTimeout(() => { this.accountFocused = false; void this.verifyUsername(); this.emit() }, 180);
+    }
+  }
+  async verifyUsername() {
+    const account = this.auth.username.trim(), generation = ++this.usernameRevision;
+    if (!account || this.route === '/auth/reset-password') return;
+    this.usernameBusy = true; this.emit();
+    const timeout = setTimeout(() => { if (generation === this.usernameRevision) { this.usernameBusy = false; this.emit() } }, 5000); this.timers.push(timeout);
+    try {
+      if (this.route === '/auth/register') {
+        const result = await this.client.request<{ available: boolean }>(`/auth/pub/register/username?username=${encodeURIComponent(account)}`, { public: true });
+        if (generation === this.usernameRevision && !this.disposed) { if (!result.available) this.errors.username = { key: 'app.register.usernameExists' }; else delete this.errors.username }
+      } else {
+        const result = await this.client.request<{ captcha?: PointCaptcha }>(`/auth/pub/login/verification?username=${encodeURIComponent(account)}`, { public: true });
+        if (generation === this.usernameRevision && !this.disposed) { this.captcha = result.captcha || null; this.captchaPoints = []; this.captchaVerified = false; if (this.captcha) this.resetSlider() }
+      }
+    } catch (e) { if (generation === this.usernameRevision && !this.disposed) this.error = this.errorMessage(e) }
+    finally { clearTimeout(timeout); if (generation === this.usernameRevision) this.usernameBusy = false; this.emit() }
+  }
+  async saveTimezone() {
+    this.errors = {};
+    try { new Intl.DateTimeFormat('en', { timeZone: this.form.timezone }).format(new Date()) }
+    catch { this.errors.timezone = { key: 'invalidDate' }; this.emit(); return }
+    this.preferences.timezone = this.form.timezone; this.persist(); this.initial = { ...this.form }; this.close(true);
   }
   blurSearch() { clearTimeout(this.blurTimer); this.blurTimer = setTimeout(() => { this.searchFocus = false; this.rememberSearch(); void this.load() }, 250) }
   rememberSearch() { const q = this.query.trim(); if (!q) return; const key = this.client.prefix + `history:${this.resource}`, history = this.client.platform.read(key); this.client.platform.write(key, [q, ...(Array.isArray(history) ? history : []).filter(x => x !== q)].slice(0, 12)) }
@@ -335,9 +380,10 @@ export class Screen {
     if (Object.keys(this.errors).length) { this.emit(); return }
     this.busy = true; this.emit();
     try {
-      const payload = reset ? { new_password: this.auth.password.trim() } : { username: this.auth.username.trim(), password: this.auth.password.trim(), ...(this.captcha ? { captcha_id: this.captcha.captcha_id, captcha_points: this.captchaPoints } : { slider_proof: this.proof }), ...(register ? {} : { remember_me: this.auth.remember }) };
+      if (register) { const available = await this.client.request<{ available: boolean }>(`/auth/pub/register/username?username=${encodeURIComponent(this.auth.username.trim())}`, { public: true }); if (!available.available) { this.errors.username = { key: 'app.register.usernameExists' }; return } }
+      const payload = reset ? { new_password: this.auth.password.trim() } : { username: this.auth.username.trim(), password: this.auth.password.trim(), ...(this.captcha ? { captcha_id: this.captcha.captcha_id, captcha_points: this.captchaPoints } : { slider_proof: this.proof }), ...(register ? {} : { remember_me: false }) };
       const result = await this.client.submitCredentials(reset ? 'password_reset' : register ? 'register' : 'login', payload);
-      if (this.auth.remember) this.client.platform.write(this.client.prefix + 'username', this.auth.username.trim());
+      if (!register && !reset && result.access_token) this.accounts = saveAccounts(this.client.platform, this.client.prefix, [this.auth.username.trim(), ...this.accounts]);
       if (register) { this.client.registrationLogin = { username: this.auth.username.trim(), password: this.auth.password.trim() }; this.client.platform.toast(this.t('app.register.success')); this.navigate('/auth/login', true) }
       else { this.client.accept(result); if (!this.client.resetRequired) await this.client.loadUser(); this.navigate(this.client.resetRequired ? '/auth/reset-password' : '/dashboard/overview', true) }
       this.auth.password = ''; this.auth.confirmation = '';
@@ -415,7 +461,8 @@ export class Screen {
     if (this.sheet?.type === 'compose') return [this.field('title', this.t('app.msg.title'), 'input', true), this.field('content', this.t('app.msg.content'), 'textarea', true), ...(this.form.scope === 'targeted' ? [this.field('recipient_ids', this.t('app.msg.recipients'), 'picker', true)] : []), this.field('expired_at', this.t('app.msg.expiry'), 'input', false)];
     if (this.sheet?.type === 'operation') return this.sheet.operation === 'review' && this.form.decision === 'reject' ? [this.field('reason', this.t('system.user.reason'), 'textarea', true)] : this.sheet.operation === 'lock' && this.form.lockMode !== 'permanent' ? [this.field('lockUntil', this.t('system.user.lockedUntil'), 'input', true)] : [];
     if (this.sheet?.type === 'filters') return this.config.filters.filter((f, i) => i > 0 && f.key !== 'status').map(f => this.field(f.key, f.label, f.type === 'enabled' ? 'switch' : 'input', false, this.filters[f.key], 'filter'));
-    if (this.sheet?.type === 'preferences') return ['timezone', 'year', 'company', 'companyLink', 'icp', 'icpLink'].map(key => this.field(key, this.t(key), 'input', ['timezone', 'company'].includes(key)));
+    if (this.sheet?.type === 'timezone') return [this.field('timezone', this.t('timezone'), 'input', true)];
+    if (this.sheet?.type === 'preferences') return ['year', 'company', 'companyLink', 'icp', 'icpLink'].map(key => this.field(key, this.t(key), 'input', ['company'].includes(key)));
     return [];
   }
   value(record: RecordData, key: string): string {
@@ -440,6 +487,8 @@ export class Screen {
     const s = this.sheet, record = this.record;
     let choices: any[] = [];
     if (s?.type === 'picker') choices = this.options.map(o => ({ value: String(o.value), label: o.label, selected: Array.isArray(this.form[s.field!]) ? this.form[s.field!].includes(o.value) : this.form[s.field!] === o.value, action: 'option' }));
+    if (s?.type === 'language') choices = [{ value: 'zh-CN', label: '简体中文' }, { value: 'en-US', label: 'English' }].map(o => ({ ...o, selected: this.client.locale === o.value, action: 'language-value' }));
+    if (s?.type === 'timezone') choices = ['Asia/Shanghai', 'UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo'].map(value => ({ value, label: value, selected: this.preferences.timezone === value, action: 'timezone-value' }));
     if (s?.type === 'density') choices = ['comfortable', 'compact'].map(value => ({ value, label: this.t(value), selected: this.preferences.density === value, action: 'density-value' }));
     if (s?.type === 'style') choices = ['grouped', 'cards'].map(value => ({ value, label: this.t(value), selected: this.preferences.style === value, action: 'style-value' }));
     if (s?.type === 'page-size') choices = [10, 20, 50].map(value => ({ value: String(value), label: String(value), selected: this.size === value, action: 'size-value' }));
@@ -452,10 +501,14 @@ export class Screen {
       extra: Object.fromEntries(Object.entries({ approve: 'system.user.approve', reject: 'system.user.reject', until: 'system.user.lockUntil', permanent: 'system.user.permanent', unlock: 'system.user.unlock', lock: 'system.user.lock', unlockPassword: 'system.user.unlockPassword', messageType: 'app.msg.type', notice: 'app.msg.notice', system: 'app.msg.system', scope: 'app.msg.scope', targeted: 'app.msg.targeted', discardHint: 'unsavedHint', keep: 'keepEditing', discard: 'discard' }).map(([k, v]) => [k, this.t(v)])),
       native: !!this.client.platform.native, topInset: this.client.platform.topInset || 0,
       variant: this.variant, dark: this.preferences.dark, locale: this.client.locale, language: this.client.locale === 'en-US' ? 'English' : '简体中文',
+      settingsOpen: this.sheets.some(s => s.type === 'settings'),
+      palette: [{ value: 'default', label: this.t(this.variant === 'ant' ? 'paletteAnt' : this.variant === 'tdesign' ? 'paletteTdesign' : 'paletteWot'), color: { ant: '#796375', tdesign: '#0052d9', wot: '#4d55d5' }[this.variant] }, { value: 'green', label: this.t('paletteGreen'), color: '#13775e' }, { value: 'violet', label: this.t('paletteViolet'), color: '#6b52b5' }].map(p => ({ ...p, selected: this.preferences.accent === p.value })),
+      accountFocused: this.accountFocused, accountHistory: this.accounts, usernameBusy: this.usernameBusy,
+      accountOptions: this.accounts.filter(a => a.toLowerCase().includes(this.auth.username.trim().toLowerCase())).map(value => ({ value })),
       route: this.route, view: this.view, tab: this.tab, resource: this.resource, auth: this.auth, authFields, resetRequired: this.route === '/auth/reset-password', register: this.route === '/auth/register',
       l: Object.fromEntries(Object.entries(labels).map(([alias, key]) => [alias, this.t(key)])),
-      title: this.view === 'list' ? this.config.title : this.view === 'messages' ? this.t(this.isSent ? 'app.msg.manage' : 'app.msg.inbox') : this.t(this.view === 'auth' ? this.route === '/auth/register' ? 'page.auth.register' : this.route === '/auth/reset-password' ? 'app.resetPassword.title' : 'page.auth.login' : this.view === 'profile' ? 'mine' : this.view === 'manage' ? 'managing' : this.view === 'security' ? 'security' : 'home'),
-      subtitle: this.t(this.view === 'home' ? 'overviewHint' : this.view === 'manage' ? 'manageHint' : this.view === 'profile' ? 'profileHint' : this.view === 'auth' ? 'subtitle' : this.view === 'list' ? 'userHint' : 'securityHint'),
+      title: this.view === 'list' ? this.config.title : this.view === 'messages' ? this.t(this.isSent ? 'app.msg.manage' : 'app.msg.inbox') : this.t(this.view === 'auth' ? this.route === '/auth/register' ? 'authRegisterTitle' : this.route === '/auth/reset-password' ? 'app.resetPassword.title' : 'authLoginTitle' : this.view === 'profile' ? 'mine' : this.view === 'manage' ? 'managing' : this.view === 'security' ? 'security' : 'home'),
+      subtitle: this.t(this.view === 'home' ? 'overviewHint' : this.view === 'manage' ? 'manageHint' : this.view === 'profile' ? 'profileHint' : this.view === 'auth' ? this.route === '/auth/register' ? 'authRegisterHint' : this.route === '/auth/reset-password' ? 'app.resetPassword.description' : 'authLoginHint' : this.view === 'list' ? 'userHint' : 'securityHint'),
       today: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
       user: this.client.user, initials: this.client.user?.username.slice(0, 2).toUpperCase() || 'GC', query: this.query, filters: this.filters, statusOptions,
       groups: [0, 1, 2].map((group, i) => ({ title: this.t(['accessGroup', 'configGroup', 'messageGroup'][i]), items: filtered.filter(m => m.group === group) })).filter(g => g.items.length),
@@ -473,7 +526,7 @@ export class Screen {
       form: this.form, verificationError: this.fieldError('verification'), sliderPosition: this.sliderPosition, sliderBusy: this.sliderBusy, sliderError: this.sliderError, proof: !!this.proof,
       captcha: this.captcha ? { ...this.captcha, points: this.captchaPoints.map((p, index) => ({ left: p.x / this.captcha!.width * 100, top: p.y / this.captcha!.height * 100, label: index + 1 })) } : null, captchaVerified: this.captchaVerified,
       unread: this.unread, messageRead: this.messageRead, messageRows, isSent: this.isSent, canSend: this.client.canMsg('send'), canDeleteMessage: !this.isSent || this.client.canMsg('delete'), message: s?.type === 'message' ? { title: record?.title || '', content: record?.content || '', date: this.date(record?.published_at), type: this.t(`app.msg.${record?.type}`) } : null,
-      footer: this.preferences.footer && this.preferences.copyright, copyright: `Copyright © ${this.preferences.year} ${this.preferences.company}`, companyLink: this.preferences.companyLink, icp: this.preferences.icp, preferences: this.preferences,
+      footer: this.preferences.footer && this.preferences.copyright, copyright: `Copyright © ${this.preferences.year || new Date().getFullYear()} ${this.preferences.company}`, companyLink: this.preferences.companyLink, icp: this.preferences.icp, preferences: this.preferences,
       dock: [{ key: 'home', icon: 'home', label: this.t('home'), path: '/dashboard/overview' }, { key: 'manage', icon: 'grid', label: this.t('manage'), path: '/dashboard/overview?tab=manage' }, { key: 'security', icon: 'shield', label: this.t('security'), path: '/dashboard/overview?tab=security' }, { key: 'profile', icon: 'user', label: this.t('mine'), path: '/profile' }].map(d => ({ ...d, active: d.key === this.view || (d.key === 'manage' && ['list', 'messages'].includes(this.view)) })),
     };
   }
@@ -515,14 +568,23 @@ export class Screen {
         case 'operate': await this.operate(); return;
         case 'decision': this.form.decision = value; break;
         case 'lock-mode': this.form.lockMode = value; break;
-        case 'tools': case 'settings': case 'density': case 'columns': case 'style': case 'page-size': this.push({ type: name, title: name === 'columns' ? 'fields' : name === 'tools' ? 'more' : name === 'page-size' ? 'pageSize' : name }); return;
+        case 'settings': this.accountFocused = false; this.push({ type: 'settings', title: 'interfaceSettings' }); return;
+        case 'density': case 'columns': case 'style': case 'page-size': this.push({ type: name, title: name === 'columns' ? 'fields' : name === 'page-size' ? 'pageSize' : name }); return;
         case 'density-value': this.preferences.density = value; this.persist(); this.close(true); return;
         case 'style-value': this.preferences.style = value; this.persist(); this.close(true); return;
         case 'size-value': this.size = Number(value); this.page = 1; this.close(true); await this.load(); return;
         case 'column': { const cols = this.preferences.columns[this.resource] || ['role', 'code']; this.preferences.columns[this.resource] = cols.includes(value) ? cols.filter(x => x !== value) : [...cols, value]; this.persist(); break }
         case 'theme': this.preferences.dark = !this.preferences.dark; this.persist(); break;
-        case 'language': this.client.locale = this.client.locale === 'zh-CN' ? 'en-US' : 'zh-CN'; this.client.platform.write(this.client.prefix + 'locale', this.client.locale); break;
-        case 'preferences': this.form = { ...this.preferences }; this.initial = { ...this.form }; this.push({ type: 'preferences', title: 'copyright' }); return;
+        case 'language': this.push({ type: 'language', title: 'chooseLanguage' }); return;
+        case 'language-value': if (value === 'zh-CN' || value === 'en-US') { this.client.locale = value; this.client.platform.write(this.client.prefix + 'locale', value); this.close(true) } return;
+        case 'accent': if (['default', 'green', 'violet'].includes(value)) { this.preferences.accent = value as Preferences['accent']; this.persist() } break;
+        case 'timezone': this.form = { timezone: this.preferences.timezone }; this.initial = { ...this.form }; this.push({ type: 'timezone', title: 'chooseTimezone' }); return;
+        case 'timezone-value': this.form.timezone = value; await this.saveTimezone(); return;
+        case 'timezone-save': await this.saveTimezone(); return;
+        case 'account-pick': this.input('auth.username', value); this.auth.password = ''; this.accountFocused = false; clearTimeout(this.accountBlurTimer); await this.verifyUsername(); return;
+        case 'account-remove': this.accounts = saveAccounts(this.client.platform, this.client.prefix, this.accounts.filter(a => a !== value)); break;
+        case 'accounts-clear': this.accounts = saveAccounts(this.client.platform, this.client.prefix, []); this.accountFocused = false; break;
+        case 'preferences': this.form = { ...this.preferences }; this.initial = { ...this.form }; this.push({ type: 'preferences', title: 'copyrightInfo' }); return;
         case 'preference-toggle': this.form[value] = !this.form[value]; break;
         case 'save-preferences':
           this.errors = {}; this.required('company', this.form.company, this.t('company'));

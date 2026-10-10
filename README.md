@@ -284,8 +284,11 @@ All templates use the real backend contract: one-time JWE credentials,
 server-verified slider/point captcha, rotating refresh sessions, first-login
 password reset, permission-filtered menus/actions, six management modules,
 messages, per-field validation, and Chinese/English labels. Access tokens stay
-in memory; only refresh tokens, preferences, and an opted-in account name are
-persisted. Passwords, JWE credentials, and captcha proofs are never persisted.
+in memory; only refresh tokens, preferences, and recent usernames are persisted.
+The login page provides a full interface settings screen (appearance, language,
+timezone, footer and copyright), accessible without authentication. Account
+history supports individual removal and clearing; selecting an account clears
+the password. No remember-account toggle or custom top-right overflow is shown. Passwords, JWE credentials, and captcha proofs are never persisted.
 No sample users, fake sessions, fixed captcha proof, or production mock mode is
 included. UI permissions supplement backend authorization; they do not replace it.
 

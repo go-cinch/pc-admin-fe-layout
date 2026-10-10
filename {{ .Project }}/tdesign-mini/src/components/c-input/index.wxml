@@ -1,1 +1,1 @@
-<t-input  aria-label="{{label}}" value="{{value}}" placeholder="{{placeholder}}" disabled="{{disabled}}" maxlength="{{-1}}" borderless="{{true}}" type="{{password ? 'password' : 'text'}}" bind:change="change" bind:blur="blur" />
+<t-input  aria-label="{{label}}" value="{{value}}" placeholder="{{placeholder}}" disabled="{{disabled}}" maxlength="{{-1}}" borderless="{{true}}" type="{{password ? 'password' : 'text'}}" bind:change="change" bind:blur="blur" bind:focus="focus" />
