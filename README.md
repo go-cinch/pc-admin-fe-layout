@@ -140,6 +140,15 @@ login, captchas, registration, token refresh, password reset, profile settings,
 and system management pages. Their original license and framework-native visual
 systems are retained.
 
+All six frontends use the Go Cinch blue logo on light surfaces and the white
+logo on dark surfaces. Browser favicons follow the application's resolved
+light/dark theme, including saved preferences and system mode. Before the app
+initializes, Vite apps use `public/favicon.svg` with the browser color scheme.
+Only one SVG favicon is declared at runtime so a fixed-color ICO cannot
+override the selected theme. ICO assets remain available for manual use;
+Next.js keeps its ICO at `public/go-cinch-fallback.ico` to avoid automatic
+metadata injection and adds the themed SVG after hydration.
+
 All six frontends use a searchable local account history on the login page.
 Only successful login account names are saved, with the ten most recent unique
 accounts scoped to the current hostname. Users can select, remove, or clear
