@@ -1,0 +1,1 @@
+<ant-tag color="{{tone || 'primary'}}" type="fill"><slot /></ant-tag>

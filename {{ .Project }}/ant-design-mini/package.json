@@ -1,0 +1,29 @@
+{
+  "name": "[[scaffold .Project scaffold]]",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.2.0",
+  "scripts": {
+    "dev": "node scripts/build.mjs --watch",
+    "build": "node scripts/build.mjs",
+    "build:dev": "node scripts/build.mjs --development",
+    "check:type": "tsc --noEmit",
+    "test": "tsx --test src/core/*.test.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "node-forge": "1.4.0",
+    "antd-mini": "3.4.3",
+    "dayjs": "1.11.13"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.15",
+    "@types/node-forge": "1.3.14",
+    "typescript": "5.9.3",
+    "esbuild": "0.25.12",
+    "miniprogram-api-typings": "4.1.0",
+    "tsx": "4.21.0",
+    "jose": "6.1.0"
+  }
+}

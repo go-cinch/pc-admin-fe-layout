@@ -1,0 +1,1 @@
+<t-button style="width:100%;min-height:44px;border-radius:10px" theme="{{kind === 'danger' ? 'danger' : kind === 'primary' ? 'primary' : 'default'}}" variant="{{kind === 'text' ? 'text' : kind === 'primary' ? 'base' : 'outline'}}" disabled="{{disabled}}" loading="{{loading}}" bindtap="press"><slot /></t-button>

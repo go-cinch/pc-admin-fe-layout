@@ -239,3 +239,59 @@ conflicts with Vue's `{{ ... }}` syntax. Paths continue to use Scaffold's defaul
 `make local DEMO=ant-design-mobile` generates the React mobile implementation of `mobile-admin/index2.html` into `demos/ant-design-mobile`. Select `ui=ant-design-mobile` (alias `antd-mobile`) or the corresponding preset. It preserves the garnet light/dark prototype styling and uses the same real auth and management APIs as Vben. The local port allocator selects the first unassigned port above 5666 and preserves `.env.development.local`; this demo currently uses 5671.
 
 See [`{{ .Project }}/ant-design-mobile/README.md`](<{{ .Project }}/ant-design-mobile/README.md>) for development and validation commands.
+
+## Mini-program UI templates
+
+The three mini-program selectors preserve the mobile prototype directions and share
+one platform-independent auth/management implementation:
+
+| Selector | UI runtime | Target | Design |
+| --- | --- | --- | --- |
+| `ant-design-mini` | Ant Design Mini 3.4.3, native WXML/TypeScript | WeChat mini-program | Soft garnet, grouped lists, floating dock |
+| `tdesign-mini` | TDesign MiniProgram 1.17.0, native WXML/TypeScript | WeChat mini-program | Blue overview, clear application rows |
+| `wot-ui-mini` | Wot UI 2.3.2, uni-app, Vue 3 | WeChat mini-program; H5 preview | Indigo cards, compact mobile controls |
+
+```bash
+make local DEMO=ant-design-mini
+make local DEMO=tdesign-mini
+make local DEMO=wot-ui-mini
+# Or generate a standalone project:
+make full PROJECT=my-mini UI=tdesign-mini OUTPUT_DIR=/path/to/projects
+```
+
+In each generated project run `pnpm install --frozen-lockfile`, `pnpm check:type`,
+`pnpm test`, and `pnpm build`. Native projects generate `dist/`; import the
+project root into WeChat DevTools. Wot generates `dist/build/mp-weixin/`; import
+that directory. `pnpm dev` rebuilds for development. Wot also supports
+`pnpm dev:h5` and `pnpm build:h5`.
+
+`make local` preserves ignored `mini.config.local`, `.env.development.local`,
+and `project.private.config.json`. `mini.config.local` contains the developer's
+WeChat `appid` and an absolute development `apiBase`. The default `touristappid`
+is for simulator inspection only; use your own AppID and a registered HTTPS
+request domain for device previews and release. Production builds use
+`VITE_GLOB_AUTH_API_URL` from `.env.production`, never the local development API.
+The H5 development proxy still uses `AUTH_PROXY_TARGET` and its assigned port.
+
+The generation hook merges `{{ .Project }}/_mini-core` into the selected
+project's `src/core`. Edit shared business logic there. The native adapters and
+Wot components live in the individual template directories. The screen markup
+and native adapter generation sources are under `scripts/mini`; after changing
+them run `python3 scripts/mini/render.py`. Generation does not need Python and
+uses the committed rendered files.
+
+All templates use the real backend contract: one-time JWE credentials,
+server-verified slider/point captcha, rotating refresh sessions, first-login
+password reset, permission-filtered menus/actions, six management modules,
+messages, per-field validation, and Chinese/English labels. Access tokens stay
+in memory; only refresh tokens, preferences, and an opted-in account name are
+persisted. Passwords, JWE credentials, and captcha proofs are never persisted.
+No sample users, fake sessions, fixed captcha proof, or production mock mode is
+included. UI permissions supplement backend authorization; they do not replace it.
+
+Native builds bundle only the referenced component dependency graph, including
+WXML/WXSS/WXS dependencies; no manual “build npm” step is needed. Unit tests
+independently decrypt the mini-program JWE with JOSE, verify tamper rejection,
+exercise refresh races and credential transport, and check route/permission
+contracts. WeChat device verification still requires a developer AppID and
+normal platform login, permissions, HTTPS domain configuration, and packaging.

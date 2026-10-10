@@ -1,0 +1,25 @@
+{
+  "pages": [
+    "pages/dashboard/overview/index",
+    "pages/dashboard/workspace/index",
+    "pages/system/user/index",
+    "pages/system/role/index",
+    "pages/system/user-group/index",
+    "pages/system/action/index",
+    "pages/system/dictionary/index",
+    "pages/system/whitelist/index",
+    "pages/system/msg/index",
+    "pages/msg/inbox/index",
+    "pages/profile/index",
+    "pages/auth/login/index",
+    "pages/auth/register/index",
+    "pages/auth/reset-password/index"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4f5f8"
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

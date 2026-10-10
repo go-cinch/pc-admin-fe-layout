@@ -246,6 +246,36 @@ def validate_ant_mobile(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert_template_integrity(source, project)
 
 
+def validate_mini(project, ui, production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+    package = json.loads((project / 'package.json').read_text())
+    assert package['name'] == project.name
+    assert package['packageManager'] == 'pnpm@10.2.0'
+    assert (project / 'pnpm-lock.yaml').is_file()
+    assert (project / 'src/core/client.ts').is_file()
+    assert (project / 'src/core/core.test.ts').is_file()
+    assert not (project / '_mini-core').exists()
+    assert not (project / ui).exists()
+    assert f'VITE_GLOB_AUTH_API_URL={production_auth_api_url}\n' in (project / '.env.production').read_text()
+    expected = {'ant-design-mini': 'antd-mini', 'tdesign-mini': 'tdesign-miniprogram', 'wot-ui-mini': '@wot-ui/ui'}[ui]
+    assert expected in package['dependencies']
+    if ui == 'wot-ui-mini':
+        pages = json.loads((project / 'src/pages.json').read_text())['pages']
+        assert len(pages) == 14
+        assert (project / 'src/components/CinchScreen.vue').is_file()
+        assert 'dev:h5' in package['scripts']
+    else:
+        pages = json.loads((project / 'src/app.json').read_text())['pages']
+        assert len(pages) == 14
+        for page in pages:
+            for ext in ['ts', 'json', 'wxml', 'wxss']:
+                assert (project / 'src' / f'{page}.{ext}').is_file()
+        assert (project / 'scripts/build.mjs').is_file()
+        assert expected in (project / 'src/components/c-button/index.json').read_text()
+    assert_template_integrity(LAYOUT / '{{ .Project }}' / ui, project)
+    assert_template_integrity(LAYOUT / '{{ .Project }}' / '_mini-core', project / 'src/core')
+    assert_artifacts_excluded(project)
+
+
 with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     output = Path(temp)
     keys = []
@@ -463,3 +493,30 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     assert (conflict / 'package.json').read_text() == 'existing ant mobile project'
     assert not (conflict / 'src').exists()
     print('PASS Ant Mobile artifacts and collision protection', flush=True)
+
+    for ui in ['ant-design-mini', 'tdesign-mini', 'wot-ui-mini']:
+        for suffix, options in [('selector', [f'ui={ui}']), ('preset', [f'--preset={ui}'])]:
+            name = f'{ui}-{suffix}'
+            run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
+                 '--no-prompt', f'Project={name}', *options])
+            validate_mini(output / name, ui)
+        run(['make', 'local', f'DEMO={ui}', f'DEMOS_DIR={local_output}'])
+        generated = local_output / ui
+        local_env = generated / '.env.development.local'
+        mini_local = generated / 'mini.config.local'
+        env_value = local_env.read_text()
+        assert 'VITE_PORT=' in env_value
+        assert json.loads(mini_local.read_text())['appid'] == 'touristappid'
+        config_value = '{"appid":"wx-test-local","apiBase":"http://localhost:8081"}\n'
+        mini_local.write_text(config_value)
+        private_config = generated / 'project.private.config.json'
+        private_config.write_text('{"local":true}\n')
+        run(['make', 'local', f'DEMO={ui}', f'DEMOS_DIR={local_output}'])
+        assert mini_local.read_text() == config_value
+        assert local_env.read_text() == env_value
+        assert private_config.read_text() == '{"local":true}\n'
+        mini_local.unlink()
+        local_env.unlink()
+        private_config.unlink()
+        validate_mini(generated, ui)
+        print(f'PASS {ui}: selector/preset, standalone core, routes, local config preservation', flush=True)

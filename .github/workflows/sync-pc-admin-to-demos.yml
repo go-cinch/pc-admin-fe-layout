@@ -18,6 +18,9 @@ on:
           - tail-react
           - tdesign-vue3-mobile
           - ant-design-mobile
+          - ant-design-mini
+          - tdesign-mini
+          - wot-ui-mini
 
 concurrency:
   group: sync-admin-frontends-to-demos
@@ -62,6 +65,9 @@ jobs:
               {"name": "tail-react"},
               {"name": "tdesign-vue3-mobile"},
               {"name": "ant-design-mobile"},
+              {"name": "ant-design-mini"},
+              {"name": "tdesign-mini"},
+              {"name": "wot-ui-mini"},
           ]
           with open(os.environ["GITHUB_EVENT_PATH"]) as source:
               event = json.load(source)
@@ -90,7 +96,9 @@ jobs:
                   )
                   selected = [
                       p for p in projects
-                      if shared_changed or any(
+                      if shared_changed or (p["name"].endswith("-mini") and any(
+                          path.startswith("{{ .Project }}/_mini-core/") for path in changed
+                      )) or any(
                           path.startswith(f"{{{{ .Project }}}}/{p['name']}/")
                           for path in changed
                       )
@@ -187,6 +195,13 @@ jobs:
             tail-react)
               npm ci
               npm run build
+              ;;
+            ant-design-mini|tdesign-mini|wot-ui-mini)
+              pnpm install --frozen-lockfile
+              pnpm check:type
+              pnpm test
+              pnpm build
+              if [ "$DEMO_PROJECT" = 'wot-ui-mini' ]; then pnpm build:h5; fi
               ;;
             tdesign-vue3-mobile|ant-design-mobile)
               pnpm install --frozen-lockfile

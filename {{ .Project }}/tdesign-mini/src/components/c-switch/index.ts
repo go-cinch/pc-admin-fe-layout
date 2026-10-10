@@ -1,0 +1,1 @@
+Component({ options: { styleIsolation: 'shared' }, properties: { name: String, checked: Boolean }, methods: { change(e: any) { this.triggerEvent('change', { name: this.data.name, value: e.detail?.value ?? e.detail }) } } });

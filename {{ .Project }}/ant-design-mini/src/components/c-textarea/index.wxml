@@ -1,0 +1,1 @@
+<ant-textarea style="padding:12px;min-height:46px;box-sizing:border-box" aria-label="{{label}}" value="{{value}}" placeholder="{{placeholder}}" disabled="{{disabled}}" controlled="{{true}}" maxLength="{{-1}}" bind:change="change" bind:blur="blur" />

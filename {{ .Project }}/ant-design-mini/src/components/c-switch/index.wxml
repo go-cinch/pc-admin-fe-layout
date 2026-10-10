@@ -1,0 +1,1 @@
+<ant-switch checked="{{checked}}" controlled="{{true}}" bind:change="change" />

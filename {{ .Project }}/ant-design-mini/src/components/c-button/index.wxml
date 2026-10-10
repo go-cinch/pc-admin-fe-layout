@@ -1,0 +1,1 @@
+<ant-button style="width:100%;min-height:44px;border-radius:10px" type="{{kind === 'primary' ? 'primary' : kind === 'text' ? 'text' : 'default'}}" danger="{{kind === 'danger'}}" disabled="{{disabled}}" loading="{{loading}}" bindtap="press"><slot /></ant-button>

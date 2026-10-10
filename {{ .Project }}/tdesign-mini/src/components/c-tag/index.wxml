@@ -1,0 +1,1 @@
+<t-tag theme="{{tone || 'default'}}" variant="light"><slot /></t-tag>

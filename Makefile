@@ -6,7 +6,7 @@ PROJECT ?= pc-admin
 OUTPUT_DIR ?= ..
 DEMOS_DIR ?= $(CURDIR)/../demos
 DEMO ?=
-UI ?= $(if $(filter $(DEMO),tail-react art-eleplus-vue3 shadcn-react tdesign-vue3-mobile ant-design-mobile),$(DEMO),vben-antd-vue3)
+UI ?= $(if $(filter $(DEMO),tail-react art-eleplus-vue3 shadcn-react tdesign-vue3-mobile ant-design-mobile ant-design-mini tdesign-mini wot-ui-mini),$(DEMO),vben-antd-vue3)
 AUTH_PROXY_TARGET ?= http://127.0.0.1:8081
 TAIL_REACT_PORT ?= 5667
 ART_ELEPLUS_VUE3_PORT ?= 5668
@@ -14,8 +14,8 @@ SHADCN_REACT_PORT ?= 5669
 VITE_GLOB_API_URL ?= https://entry.go-cinch.top/api/auth
 VITE_GLOB_AUTH_API_URL ?= https://entry.go-cinch.top/api/auth
 
-ifeq ($(filter $(UI),vben-antd-vue3 vben tail-react tail art-eleplus-vue3 art shadcn-react shadcn tdesign-vue3-mobile tdesign-mobile ant-design-mobile antd-mobile),)
-$(error UI must be vben-antd-vue3, tail-react, art-eleplus-vue3, shadcn-react, tdesign-vue3-mobile, or ant-design-mobile (or a supported alias))
+ifeq ($(filter $(UI),vben-antd-vue3 vben tail-react tail art-eleplus-vue3 art shadcn-react shadcn tdesign-vue3-mobile tdesign-mobile ant-design-mobile antd-mobile ant-design-mini tdesign-mini wot-ui-mini),)
+$(error UI must be vben-antd-vue3, tail-react, art-eleplus-vue3, shadcn-react, tdesign-vue3-mobile, ant-design-mobile, ant-design-mini, tdesign-mini, or wot-ui-mini (or a supported alias))
 endif
 
 full:
@@ -103,6 +103,7 @@ local:
 		--exclude='.turbo/' \
 		--exclude='.cache/' \
 		--exclude='*.local' \
+		--exclude='project.private.config.json' \
 		"$$staging_dir/$$project/" \
 		"$$target_dir/"; \
 	if [ "$$selected_ui" != 'vben-antd-vue3' ] && [ ! -e "$$env_file" ]; then \
@@ -110,12 +111,18 @@ local:
 			tail-react) local_port='$(TAIL_REACT_PORT)' ;; \
 			art-eleplus-vue3) local_port='$(ART_ELEPLUS_VUE3_PORT)' ;; \
 			shadcn-react) local_port='$(SHADCN_REACT_PORT)' ;; \
-			tdesign-vue3-mobile|ant-design-mobile) local_port=$$(python3 scripts/available-port.py "$(DEMOS_DIR)") ;; \
+			tdesign-vue3-mobile|ant-design-mobile|ant-design-mini|tdesign-mini|wot-ui-mini) local_port=$$(python3 scripts/available-port.py "$(DEMOS_DIR)") ;; \
 		esac; \
 		if [ "$$selected_ui" = 'shadcn-react' ]; then \
 			printf 'AUTH_PROXY_TARGET=%s\nPORT=%s\nNEXT_PUBLIC_APP_URL=http://localhost:%s\nNEXT_PUBLIC_SENTRY_DISABLED=true\n' '$(AUTH_PROXY_TARGET)' "$$local_port" "$$local_port" > "$$env_file"; \
 		else \
-			printf 'AUTH_PROXY_TARGET=%s\nVITE_PORT=%s\n' '$(AUTH_PROXY_TARGET)' "$$local_port" > "$$env_file"; \
+			printf 'AUTH_PROXY_TARGET=%s\nVITE_PORT=%s\n__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=preview-local.go-cinch.top\n' '$(AUTH_PROXY_TARGET)' "$$local_port" > "$$env_file"; \
 		fi; \
 	fi; \
+	case "$$selected_ui" in \
+		ant-design-mini|tdesign-mini|wot-ui-mini) \
+			if [ ! -f "$$target_dir/mini.config.local" ]; then \
+				printf '{"appid":"touristappid","apiBase":"%s"}\n' '$(AUTH_PROXY_TARGET)' > "$$target_dir/mini.config.local"; \
+			fi ;; \
+	esac; \
 	test ! -e "$$target_dir/$$selected_ui"

@@ -10,6 +10,17 @@ if [ ! -d "$ui_dir" ]; then
   exit 1
 fi
 
+# Shared mini-program core is copied only for the three mini selectors.
+case '{{ .Computed.ui_final }}' in
+  ant-design-mini|tdesign-mini|wot-ui-mini)
+    if [ -e "$ui_dir/src/core" ]; then
+      printf 'Mini core destination already exists\n' >&2
+      exit 1
+    fi
+    mv "$project_dir/_mini-core" "$ui_dir/src/core"
+    ;;
+esac
+
 # Check every destination before moving anything, including hidden files.
 for source in "$ui_dir"/* "$ui_dir"/.[!.]* "$ui_dir"/..?*; do
   [ -e "$source" ] || [ -L "$source" ] || continue

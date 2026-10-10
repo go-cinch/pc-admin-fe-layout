@@ -1,0 +1,1 @@
+<script setup lang="ts">defineProps<{tone?:string}>();</script><template><wd-tag :type="tone==='success'?'success':tone==='danger'?'danger':tone==='warning'?'warning':'default'" variant="soft"><slot /></wd-tag></template>

@@ -20,3 +20,5 @@ dist.war
 coverage/
 .eslintcache
 .stylelintcache
+
+project.private.config.json

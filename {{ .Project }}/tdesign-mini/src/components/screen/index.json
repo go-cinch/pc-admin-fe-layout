@@ -1,0 +1,11 @@
+{
+  "component": true,
+  "usingComponents": {
+    "c-button": "../c-button/index",
+    "c-input": "../c-input/index",
+    "c-textarea": "../c-textarea/index",
+    "c-switch": "../c-switch/index",
+    "c-tag": "../c-tag/index",
+    "c-icon": "../c-icon/index"
+  }
+}

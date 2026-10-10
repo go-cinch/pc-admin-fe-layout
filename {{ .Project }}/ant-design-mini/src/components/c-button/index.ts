@@ -1,0 +1,1 @@
+Component({ options: { multipleSlots: true, styleIsolation: 'shared' }, properties: { action: String, arg: String, kind: String, disabled: Boolean, loading: Boolean }, methods: { press() { if (!this.data.disabled && !this.data.loading) this.triggerEvent('press', { action: this.data.action, arg: this.data.arg }) } } });

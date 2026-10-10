@@ -1,0 +1,1 @@
+Component({ options: { styleIsolation: 'shared' }, properties: { name: String, label: String, value: { type: null, value: '' }, placeholder: String, password: Boolean, disabled: Boolean }, methods: { change(e: any) { const value = e.detail?.value ?? e.detail; this.triggerEvent('change', { name: this.data.name, value }) }, blur() { this.triggerEvent('blur') } } });
