@@ -1,4 +1,7 @@
 <script setup lang="ts">
-defineProps<{name:string}>();
-const names:Record<string,string>={"users": "user-group", "shield": "safe", "grid": "apps", "key": "lock", "book": "book", "check": "check", "bell": "notification", "home": "home", "user": "user", "back": "arrow-left", "more": "more", "search": "search-line", "refresh": "refresh", "density": "unordered-list", "columns": "layout", "chevron": "arrow-right", "close": "close", "moon": "moon", "globe": "application", "settings": "settings", "clock": "clock-circle", "layers": "copy", "layout": "layout"};
-</script><template><wd-icon :name="names[name]||'app'" size="22px" /></template>
+import { computed } from 'vue';
+import { iconSource } from './icon-source';
+const props=defineProps<{name:string;tone?:string;variant?:string;dark?:boolean;accent?:string}>();
+const source=computed(()=>iconSource(props));
+</script><template><image class="cinch-icon" :src="source" mode="aspectFit" aria-hidden="true" /></template>
+<style>.cinch-icon{display:block;flex-shrink:0;width:var(--icon-size,20px);height:var(--icon-size,20px)}</style>

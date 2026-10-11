@@ -201,7 +201,7 @@ jobs:
               pnpm check:type
               pnpm test
               pnpm build
-              if [ "$DEMO_PROJECT" = 'wot-ui-mini' ]; then pnpm build:h5; fi
+              if [ "$DEMO_PROJECT" = 'wot-ui-mini' ]; then pnpm check:crypto; pnpm build:h5; fi
               ;;
             tdesign-vue3-mobile|ant-design-mobile)
               pnpm install --frozen-lockfile

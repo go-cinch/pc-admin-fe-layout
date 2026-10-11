@@ -1,1 +1,1 @@
-:host { display: inline-block; width: auto; flex-shrink: 0; }
+:host{display:inline-flex;width:var(--icon-size,20px);height:var(--icon-size,20px);flex-shrink:0}.cinch-icon{display:block;width:var(--icon-size,20px);height:var(--icon-size,20px)}

@@ -1,1 +1,1 @@
-:host { display: block; width: 100%; }
+:host{display:block;width:100%}.native-input-row{display:flex;align-items:center;width:100%;min-width:0}.native-input-control{flex:1;min-width:0}.native-input-row .password-toggle{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;min-width:44px;max-width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;background:transparent;color:var(--muted);box-sizing:border-box}.password-toggle::after{border:0}

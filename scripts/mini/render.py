@@ -12,6 +12,20 @@ icons={'users':'UserSetOutline','shield':'CheckShieldOutline','grid':'AppOutline
 wicons={'users':'user-group','shield':'safe','grid':'apps','key':'lock','book':'book','check':'check','bell':'notification','home':'home','user':'user','back':'arrow-left','more':'more','search':'search-line','refresh':'refresh','density':'unordered-list','columns':'layout','chevron':'arrow-right','close':'close','moon':'moon','globe':'application','settings':'settings','clock':'clock-circle','layers':'copy','layout':'layout'}
 ticons={'users':'usergroup','shield':'secured','grid':'app','key':'key','book':'book','check':'check','bell':'notification','home':'home','user':'user','back':'chevron-left','more':'more','search':'search','refresh':'refresh','density':'view-list','columns':'view-column','chevron':'chevron-right','close':'close','moon':'moon','globe':'earth','settings':'setting','clock':'time','layers':'layers','layout':'layout'}
 markup=(HERE/'screen.wxml').read_text().replace('/assets/','/static/')
+markup=markup.replace('<c-datetime ', '<c-datetime timezone="{{vm.preferences.timezone}}" ')
+markup=markup.replace('<c-input ', '<c-input locale="{{vm.locale}}" ')
+markup=markup.replace('<c-icon ', '<c-icon variant="{{vm.variant}}" dark="{{vm.dark}}" accent="{{vm.preferences.accent}}" ')
+markup=re.sub(r'<button([^>]*?)data-a="([^"]+)"',lambda m:'<button'+m.group(1)+'data-testid="action-'+m.group(2)+'" data-a="'+m.group(2)+'"' if 'data-testid=' not in m.group(1) else m.group(0),markup)
+def testable_tag(m):
+ tag=m.group(0)
+ for prop,attr in [('name','data-field'),('action','data-a'),('arg','data-v')]:
+  found=re.search(r'(?<![\w-])'+prop+r'="([^"]+)"',tag)
+  if found and attr+'=' not in tag: tag=tag.replace(' '+prop+'=', ' '+attr+'="'+found.group(1)+'" '+prop+'=',1)
+ if tag.startswith('<c-switch'):
+  checked=re.search(r'checked="([^"]+)"',tag)
+  if checked: tag=tag.replace('<c-switch ', '<c-switch role="switch" aria-checked="'+checked.group(1)+'" ')
+ return tag
+markup=re.sub(r'<c-(?:button|input|textarea|switch|datetime)\b[^>]*>',testable_tag,markup)
 def write(p,s):p.parent.mkdir(parents=True,exist_ok=True);p.write_text(s)
 def dump(p,obj):write(p,json.dumps(obj,ensure_ascii=False,indent=2)+'\n')
 for ui,variant in [('ant-design-mini','ant'),('tdesign-mini','tdesign')]:
@@ -30,39 +44,52 @@ for ui,variant in [('ant-design-mini','ant'),('tdesign-mini','tdesign')]:
  write(src/'components/screen/index.ts',(HERE/'native-screen.ts').read_text())
  write(src/'components/screen/index.wxml',markup)
  write(src/'components/screen/index.wxss','@import "../../core/theme.wxss";\n')
- dump(src/'components/screen/index.json',{'component':True,'usingComponents':{f'c-{name}':f'../c-{name}/index' for name in ['button','input','textarea','switch','tag','icon']}})
+ dump(src/'components/screen/index.json',{'component':True,'usingComponents':{f'c-{name}':f'../c-{name}/index' for name in ['button','input','textarea','switch','tag','icon','datetime']}})
  for name in ['button','input','textarea','switch','tag','icon']:
   folder=src/'components'/('c-'+name)
   component='Input/Textarea' if name=='textarea' else name.capitalize()
   library=f'antd-mini/{component}/index' if ant else f'tdesign-miniprogram/{name}/{name}'
   dump(folder/'index.json',{'component':True,'styleIsolation':'shared','usingComponents':{f'{prefix}-{name}':library}})
   write(folder/'index.wxss', ':host { display: inline-block; width: auto; flex-shrink: 0; }\n' if name in ['icon','tag','switch'] else ':host { display: block; width: 100%; }\n')
+  if name=='icon': dump(folder/'index.json',{'component':True,'styleIsolation':'shared'})
   if name=='button':
    write(folder/'index.ts',"Component({ options: { multipleSlots: true, styleIsolation: 'shared' }, properties: { action: String, arg: String, kind: String, disabled: Boolean, loading: Boolean }, methods: { press() { if (!this.data.disabled && !this.data.loading) this.triggerEvent('press', { action: this.data.action, arg: this.data.arg }) } } });\n")
    attrs='type="{{kind === \'primary\' ? \'primary\' : kind === \'text\' ? \'text\' : \'default\'}}" danger="{{kind === \'danger\'}}"' if ant else 'theme="{{kind === \'danger\' ? \'danger\' : kind === \'primary\' ? \'primary\' : \'default\'}}" variant="{{kind === \'text\' ? \'text\' : kind === \'primary\' ? \'base\' : \'outline\'}}"'
-   write(folder/'index.wxml',f'<{prefix}-button style="width:100%;min-height:44px;border-radius:10px" {attrs} disabled="{{{{disabled}}}}" loading="{{{{loading}}}}" bindtap="press"><slot /></{prefix}-button>\n')
+   write(folder/'index.wxml',f'<{prefix}-button size="medium" style="width:100%;min-height:44px;border-radius:10px;--button-font-size:14px;--button-medium-font-size:14px;--button-medium-padding-top:11px;--button-medium-padding-left:14px" {attrs} disabled="{{{{disabled}}}}" loading="{{{{loading}}}}" bindtap="press"><slot /></{prefix}-button>\n')
   elif name in ['input','textarea']:
-   write(folder/'index.ts',"Component({ options: { styleIsolation: 'shared' }, properties: { name: String, label: String, value: { type: null, value: '' }, placeholder: String, password: Boolean, disabled: Boolean }, methods: { change(e: any) { const value = e.detail?.value ?? e.detail; this.triggerEvent('change', { name: this.data.name, value }) }, blur() { this.triggerEvent('blur', { name: this.data.name }) }, focus() { this.triggerEvent('focus', { name: this.data.name }) } } });\n")
+   write(folder/'index.ts',"Component({ options: { styleIsolation: 'shared' }, data: { visible: false }, properties: { name: String, label: String, locale: String, value: { type: null, value: '' }, placeholder: String, password: Boolean, disabled: Boolean }, methods: { togglePassword() { this.setData({visible:!this.data.visible}) }, change(e: any) { const value = e.detail?.value ?? e.detail; this.triggerEvent('change', { name: this.data.name, value }) }, blur() { this.triggerEvent('blur', { name: this.data.name }) }, focus() { this.triggerEvent('focus', { name: this.data.name }) } } });\n")
    attrs='controlled="{{true}}" maxLength="{{-1}}"' if ant else 'maxlength="{{-1}}" borderless="{{true}}"'
    event='bind:change="change"' if ant else ('bind:change="change"' if name=='input' else 'bind:change="change"')
-   if name=='input':attrs+= ' password="{{password}}" type="text"' if ant else ' type="{{password ? \'password\' : \'text\'}}"'
+   if name=='input':attrs+= ' password="{{password && !visible}}" type="text"' if ant else ' type="{{password && !visible ? \'password\' : \'text\'}}"'
    extra = 'style="padding:12px;min-height:46px;box-sizing:border-box"' if ant else ''
-   write(folder/'index.wxml',f'<{prefix}-{name} {extra} aria-label="{{{{label}}}}" value="{{{{value}}}}" placeholder="{{{{placeholder}}}}" disabled="{{{{disabled}}}}" {attrs} {event} bind:blur="blur" bind:focus="focus" />\n')
+   write(folder/'index.wxml',f'<{prefix}-{name} {extra} name="{{{{name}}}}" aria-label="{{{{label}}}}" value="{{{{value}}}}" placeholder="{{{{placeholder}}}}" disabled="{{{{disabled}}}}" {attrs} {event} bind:blur="blur" bind:focus="focus" />\n')
+   if name=='input':
+    dump(folder/'index.json',{'component':True,'styleIsolation':'shared','usingComponents':{f'{prefix}-{name}':library,'c-icon':'../c-icon/index'}})
+    control=(folder/'index.wxml').read_text().strip()
+    write(folder/'index.wxml','<view class="native-input-row"><view class="native-input-control">'+control+'</view><button wx:if="{{password}}" class="password-toggle" bindtap="togglePassword" aria-label="{{locale === \'en-US\' ? (visible ? \'Hide password\' : \'Show password\') : (visible ? \'隐藏密码\' : \'显示密码\')}}" data-testid="password-visibility"><c-icon name="eye" /></button></view>\n')
+    write(folder/'index.wxss',':host{display:block;width:100%}.native-input-row{display:flex;align-items:center;width:100%;min-width:0}.native-input-control{flex:1;min-width:0}.native-input-row .password-toggle{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;min-width:44px;max-width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;background:transparent;color:var(--muted);box-sizing:border-box}.password-toggle::after{border:0}\n')
   elif name=='switch':
    write(folder/'index.ts',"Component({ options: { styleIsolation: 'shared' }, properties: { name: String, checked: Boolean }, methods: { change(e: any) { this.triggerEvent('change', { name: this.data.name, value: e.detail?.value ?? e.detail }) } } });\n")
    control = 'controlled="{{true}}"' if ant else ''
-   write(folder/'index.wxml',f'<{prefix}-switch {"checked" if ant else "value"}="{{{{checked}}}}" {control} bind:change="change" />\n')
+   write(folder/'index.wxml',f'<view class="switch-control" role="switch" aria-role="switch" aria-checked="{{{{checked}}}}" data-state="{{{{checked ? \'checked\' : \'unchecked\'}}}}"><{prefix}-switch {"checked" if ant else "value"}="{{{{checked}}}}" {control} bind:change="change" /></view>\n')
   elif name=='tag':
    write(folder/'index.ts',"Component({ options: { styleIsolation: 'shared' }, properties: { tone: String } });\n")
    write(folder/'index.wxml',f'<{prefix}-tag '+('color="{{tone || \'primary\'}}" type="fill"' if ant else 'theme="{{tone || \'default\'}}" variant="light"')+f'><slot /></{prefix}-tag>\n')
   else:
-   iconmap=icons if ant else ticons
-   write(folder/'index.ts','const icons: Record<string,string> = '+json.dumps(iconmap)+';\nComponent({ options: { styleIsolation: \'shared\' }, properties: { name: { type: String, value: \'grid\', observer(name: string) { this.setData({ nativeName: icons[name] || icons.grid }) } } }, data: { nativeName: icons.grid } });\n')
-   write(folder/'index.wxml',f'<{prefix}-icon {"type" if ant else "name"}="{{{{nativeName}}}}" '+('style="font-size:22px"' if ant else 'size="22px"')+' />\n')
+   write(folder/'index.ts', "import { iconSource } from '../icon-source';\nComponent({ options: { styleIsolation: 'shared' }, properties: { name: String, tone: {type:String,value:'muted'}, variant: String, dark: Boolean, accent: String }, data: { source: '' }, observers: { 'name,tone,variant,dark,accent': function(this:any) { this.setData({source:iconSource(this.data)}) } } });\n")
+   write(folder/'index.wxml','<image class="cinch-icon" src="{{source}}" mode="aspectFit" aria-hidden="true" />\n')
+   write(folder/'index.wxss',':host{display:inline-flex;width:var(--icon-size,20px);height:var(--icon-size,20px);flex-shrink:0}.cinch-icon{display:block;width:var(--icon-size,20px);height:var(--icon-size,20px)}\n')
+ write(src/'components/icon-source.ts', (HERE/'icon-source.ts').read_text().replace('__ICON_PATHS__',(HERE/'icon-paths.json').read_text()))
+ folder=src/'components/c-datetime'
+ dump(folder/'index.json',{'component':True,'styleIsolation':'shared'})
+ write(folder/'index.ts',(HERE/'datetime-native.ts').read_text())
+ write(folder/'index.wxml',(HERE/'datetime.wxml').read_text())
+ write(folder/'index.wxss',(HERE/'datetime.css').read_text())
  # Source license of the reused mobile business reference remains intact.
  shutil.copy(TEMPLATES/'tdesign-vue3-mobile/LICENSE_TDESIGN',root/'LICENSE_TDESIGN_REFERENCE')
 # Wot UI: the same view model expressed through Vue/uni-app and real wd-* components.
 root=TEMPLATES/'wot-ui-mini';src=root/'src'
+for script in ['forge-build-plugin.mjs','check-wot-crypto.mjs']:shutil.copy(HERE/script,root/'scripts'/script)
 for route in routes:
  p=src/('pages'+route)/'index.vue'
  import os
@@ -90,6 +117,7 @@ def vue_tag(match):
  tag=tag.replace('wx:if=','v-if=').replace('wx:elif=','v-else-if=').replace('wx:else','v-else')
  tag=re.sub(r'(v-if|v-else-if)="{{(.*?)}}"',r'\1="\2"',tag)
  tag=tag.replace('bindtap="onAction"','@tap="onAction"').replace('bind:press=','@press=').replace('bind:change=','@change=').replace('bind:blur=','@blur=').replace('bind:focus=','@focus=')
+ tag=tag.replace('bindscrolltolower=', '@scrolltolower=')
  tag=tag.replace('bindtouchstart=','@touchstart=').replace('catchtouchmove=','@touchmove.stop.prevent=').replace('bindtouchend=','@touchend=').replace('bindtouchcancel=','@touchcancel=').replace('bindtap="onPoint"','@tap="onPoint"')
  def attr(m):
   key,val=m.groups()
@@ -111,6 +139,7 @@ import CTextarea from './CTextarea.vue';
 import CSwitch from './CSwitch.vue';
 import CTag from './CTag.vue';
 import CIcon from './CIcon.vue';
+import CDatetime from './CDatetime.vue';
 const props=defineProps<{route:string;query:Record<string,string>}>();
 const vm=ref<any>(null);
 const instance=getCurrentInstance();
@@ -120,9 +149,13 @@ onBeforeUnmount(()=>screen.dispose());onShow(()=>screen.show());onHide(()=>scree
 function onAction(e:any){void screen.action(e.action||e.detail?.action||e.currentTarget?.dataset.a,String(e.arg??e.detail?.arg??e.currentTarget?.dataset.v??''))}
 function onInput(e:any){const d=e.detail||e;screen.input(d.name,d.value)}
 function onSearchBlur(){screen.blurSearch()}
+function onScrollEnd(){if(vm.value?.view==='messages'&&!vm.value?.isSent)void screen.action('message-more')}
 function onFieldFocus(e:any){screen.focusField((e.detail||e).name)}
 function onFieldBlur(e:any){screen.blurField((e.detail||e).name)}
 function box(id:string,fn:(b:any)=>void){uni.createSelectorQuery().in(instance?.proxy).select(id).boundingClientRect(fn).exec()}
+let messageStart=0,messageStartY=0;
+function onMessageStart(e:any){messageStart=e.touches[0].clientX;messageStartY=e.touches[0].clientY}
+function onMessageEnd(e:any){const dx=e.changedTouches[0].clientX-messageStart;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(e.changedTouches[0].clientY-messageStartY))void screen.action('message-swipe',dx<0?String(e.currentTarget.dataset.id):'0')}
 function onSliderStart(e:any){const x=e.touches[0].clientX;box('#slider-track',b=>{if(b)screen.beginSlider(x,b.width)})}
 function onSliderMove(e:any){screen.moveSlider(e.touches[0].clientX)}
 function onSliderEnd(){void screen.endSlider()}
@@ -147,15 +180,20 @@ function change(value:any){{emit('change',{{name:props.name,value}})}}
 ''')
 write(src/'components/CSwitch.vue','''<script setup lang="ts">
 const props=defineProps<{name:string;checked:any}>();const emit=defineEmits<{change:[value:{name:string;value:boolean}]}>();
-</script><template><wd-switch :model-value="!!checked" @update:model-value="(value:any)=>emit('change',{name:props.name,value:!!value})" /></template>
+</script><template><view class="switch-control" role="switch" aria-role="switch" :aria-checked="!!checked" :data-state="checked ? 'checked' : 'unchecked'"><wd-switch :model-value="!!checked" @update:model-value="(value:any)=>emit('change',{name:props.name,value:!!value})" /></view></template>
 ''')
 write(src/'components/CTag.vue','''<script setup lang="ts">defineProps<{tone?:string}>();</script><template><wd-tag :type="tone==='success'?'success':tone==='danger'?'danger':tone==='warning'?'warning':'default'" variant="soft"><slot /></wd-tag></template>
 ''')
+write(src/'components/icon-source.ts', (HERE/'icon-source.ts').read_text().replace('__ICON_PATHS__',(HERE/'icon-paths.json').read_text()))
 write(src/'components/CIcon.vue','''<script setup lang="ts">
-defineProps<{name:string}>();
-const names:Record<string,string>='''+json.dumps(wicons)+''';
-</script><template><wd-icon :name="names[name]||'app'" size="22px" /></template>
+import { computed } from 'vue';
+import { iconSource } from './icon-source';
+const props=defineProps<{name:string;tone?:string;variant?:string;dark?:boolean;accent?:string}>();
+const source=computed(()=>iconSource(props));
+</script><template><image class="cinch-icon" :src="source" mode="aspectFit" aria-hidden="true" /></template>
+<style>.cinch-icon{display:block;flex-shrink:0;width:var(--icon-size,20px);height:var(--icon-size,20px)}</style>
 ''')
+write(src/'components/CDatetime.vue',(HERE/'datetime-vue.txt').read_text()+'\n<style>'+ (HERE/'datetime.css').read_text().replace(':host{display:block;width:100%}', '')+'</style>\n')
 write(src/'runtime.ts','''import { Client } from './core/client';
 import { createNativePlatform, type MiniConfig } from './core/platform';
 declare const __MINI_CONFIG__: MiniConfig;
@@ -169,10 +207,11 @@ export const client=new Client(platform,__MINI_CONFIG__.apiBase);
 write(src/'main.ts',"import { createSSRApp } from 'vue';\nimport App from './App.vue';\nexport function createApp(){ return { app: createSSRApp(App) }; }\n")
 write(src/'App.vue','<script lang="ts">export default {};</script>\n<style>\n@import "./core/theme.css";\n.field .c-input,.field .c-textarea{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}\n.field.invalid .c-input,.field.invalid .c-textarea{border-color:var(--danger)}\n.search-field .c-input{flex:1;min-width:0}.sheet-footer .c-button{flex:1}.auth-submit .c-button,.auth-submit .wd-button{width:100%}\n</style>\n')
 dump(src/'pages.json',{'pages':[{'path':'pages'+r+'/index','style':{'navigationStyle':'custom'}} for r in routes],'globalStyle':{'navigationStyle':'custom','backgroundColor':'#f5f6fb'},'easycom':{'autoscan':True,'custom':{'^wd-(.*)':'@wot-ui/ui/components/wd-$1/wd-$1.vue'}}})
-dump(src/'manifest.json',{'name':'Go Cinch','appid':'','versionName':'1.0.0','versionCode':'100','vueVersion':'3','mp-weixin':{'appid':'touristappid','setting':{'urlCheck':True},'usingComponents':True},'h5':{'router':{'mode':'hash'}}})
+dump(src/'manifest.json',{'name':'Go Cinch','appid':'','versionName':'1.0.0','versionCode':'100','vueVersion':'3','mp-weixin':{'appid':'touristappid','libVersion':'3.8.12','setting':{'urlCheck':True},'usingComponents':True},'h5':{'router':{'mode':'hash'}}})
 write(root/'index.html','<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Go Cinch · Wot UI</title></head><body><div id="app"></div><script type="module" src="/src/main.ts"></script></body></html>\n')
 write(root/'vite.config.ts','''import { defineConfig, loadEnv } from 'vite';
 import uniModule from '@dcloudio/vite-plugin-uni';
+import { miniForge } from './scripts/forge-build-plugin.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 export default defineConfig(({mode})=>{
  const env=loadEnv(mode,process.cwd(),'');
@@ -180,11 +219,11 @@ export default defineConfig(({mode})=>{
  const h5=process.env.UNI_PLATFORM==='h5';
  const apiBase=h5?(env.VITE_GLOB_AUTH_API_URL||'/api/auth'):(mode==='development'&&local.apiBase?local.apiBase:env.VITE_GLOB_AUTH_API_URL);
  const uni=(uniModule as any).default||uniModule;
- return {plugins:[uni()],define:{__MINI_CONFIG__:JSON.stringify({apiBase,variant:'wot'})},server:{host:'0.0.0.0',port:Number(env.VITE_PORT||5173),strictPort:true,allowedHosts:env.__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS?.split(',')||[],proxy:env.AUTH_PROXY_TARGET?{'/api/auth':{target:env.AUTH_PROXY_TARGET,changeOrigin:true,rewrite:(p:string)=>p.replace(/^\\/api\\/auth/,'')}}:{}}};
+ return {plugins:[miniForge(),uni()],define:{__MINI_CONFIG__:JSON.stringify({apiBase,variant:'wot'})},server:{host:'0.0.0.0',port:Number(env.VITE_PORT||5173),strictPort:true,allowedHosts:env.__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS?.split(',')||[],proxy:env.AUTH_PROXY_TARGET?{'/api/auth':{target:env.AUTH_PROXY_TARGET,changeOrigin:true,rewrite:(p:string)=>p.replace(/^\\/api\\/auth/,'')}}:{}}};
 });
 ''')
 write(root/'scripts/prepare.mjs','''import { readFileSync,writeFileSync,existsSync } from 'node:fs';
-if(existsSync('mini.config.local')){const local=JSON.parse(readFileSync('mini.config.local','utf8'));const manifest=JSON.parse(readFileSync('src/manifest.json','utf8'));if(local.appid)manifest['mp-weixin'].appid=local.appid;writeFileSync('src/manifest.json',JSON.stringify(manifest,null,2)+'\\n');}
+if(existsSync('mini.config.local')){const local=JSON.parse(readFileSync('mini.config.local','utf8'));const manifest=JSON.parse(readFileSync('src/manifest.json','utf8'));if(local.appid)manifest['mp-weixin'].appid=local.appid;manifest['mp-weixin'].setting.urlCheck=!process.argv.includes('--development');writeFileSync('src/manifest.json',JSON.stringify(manifest,null,2)+'\\n');}
 ''')
 shutil.copy(TEMPLATES/'tdesign-vue3-mobile/LICENSE_TDESIGN',root/'LICENSE_TDESIGN_REFERENCE')
 for p in (src/'assets').glob('*'):write(src/'static'/p.name,p.read_text())

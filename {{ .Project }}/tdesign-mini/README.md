@@ -10,7 +10,7 @@ Generate from pc-admin-fe-layout with `make local DEMO=tdesign-mini`. Then:
 pnpm install --frozen-lockfile
 pnpm check:type
 pnpm test
-pnpm build
+pnpm build:dev
 pnpm dev
 ```
 
@@ -52,3 +52,7 @@ refresh rotation/races, token persistence boundaries, permission namespaces,
 route mapping, form fields, and stale captcha responses. Always verify actual
 login, captcha gestures, API domain access, keyboard behavior, and platform
 components in WeChat DevTools and on your target devices before publishing.
+
+Use `pnpm build` for the production HTTPS configuration. Native `build:dev` uses
+`mini.config.local`; Wot additionally validates its actual WeChat bundle with
+`pnpm check:crypto`.

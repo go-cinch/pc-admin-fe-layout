@@ -179,3 +179,216 @@ test('registration rechecks availability before submitting encrypted credentials
   await screen.login(); assert.ok(screen.errors.username); assert.equal(f.calls.length,1);
   assert.ok(f.calls[0].url.includes('/auth/pub/register/username?username=taken')); screen.dispose();
 });
+
+const admin = { id: 1, username: 'admin', code: 'A', permission: { menus: ['*'], btns: ['*'] } };
+const pageData = (items: any[] = [], t = items.length) => ({ items, t, p: 1, s: 20 });
+const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+
+test('dashboard ends bootstrap before independent requests complete and retains successful regions', async () => {
+  const pending = new Map<string, (value: any) => void>();
+  const f = fixture(async url => {
+    if (url.endsWith('/auth/pub/refresh')) return { status: 200, data: session };
+    if (url.endsWith('/auth/info')) return { status: 200, data: admin };
+    if (url.includes('/user?')) return new Promise(resolve => pending.set(new URL(url).searchParams.get('status') || 'recent', resolve));
+    return { status: 200, data: { count: 0 } };
+  });
+  f.client.accept(session); const screen = new Screen(f.client, 'ant', () => {});
+  const start = screen.start('/dashboard/overview'); await tick();
+  assert.equal(screen.booting, false); assert.equal(screen.snapshot().reviewsLoading, true);
+  pending.get('1')!({ status: 200, data: pageData([], 9) }); await tick();
+  assert.equal(screen.stats.active.loading, false); assert.equal(screen.stats.active.value, 9);
+  assert.equal(screen.stats.pending.loading, true); assert.equal(screen.recentLoading, true);
+  pending.get('0')!({ status: 503, data: { msg: 'Try later' } });
+  pending.get('2')!({ status: 200, data: pageData([], 2) });
+  pending.get('recent')!({ status: 200, data: pageData([{ id: 4, username: 'a', created_at: 1, updated_at: 1 }], 12) });
+  await start;
+  assert.equal(screen.snapshot().reviewsLoading, false); assert.equal(screen.snapshot().reviewsError, 'Try later');
+  assert.equal(screen.snapshot().stats[1].display, '—'); assert.equal(screen.error, ''); assert.equal(screen.total, 12);
+  screen.dispose();
+});
+
+test('failed refresh keeps previously loaded records and exposes an inline recoverable error', async () => {
+  let fail = false, toast = 0;
+  const f = fixture(async () => { if (fail) throw new Error('ECONNREFUSED 127.0.0.1:8081'); return { status: 200, data: pageData([{ id: 5, username: 'existing', created_at: 1, updated_at: 1 }]) } });
+  f.platform.toast = () => toast++; f.client.user = admin;
+  const screen = new Screen(f.client, 'wot', () => {}); screen.view = 'list'; screen.route = '/system/user';
+  await screen.load(); fail = true; await screen.load();
+  assert.equal(screen.records[0].username, 'existing'); assert.equal(screen.loading, false);
+  assert.equal(screen.error, f.client.t('requestError')); assert.equal(toast, 0); screen.dispose();
+});
+
+test('late detail response cannot replace a newly opened record or a closed sheet', async () => {
+  const pending = new Map<string, (value: any) => void>();
+  const f = fixture(async url => new Promise(resolve => pending.set(url, resolve))); f.client.user = admin;
+  const screen = new Screen(f.client, 'ant', () => {}); screen.view = 'list'; screen.route = '/system/user';
+  const first = screen.detail(1); screen.close(true); const second = screen.detail(2);
+  pending.get(f.client.base + '/user/2')!({ status: 200, data: { id: 2, username: 'new' } }); await second;
+  pending.get(f.client.base + '/user/1')!({ status: 200, data: { id: 1, username: 'old' } }); await first;
+  assert.equal(screen.record?.id, 2); assert.equal(screen.sheet?.id, 2); assert.equal(screen.sheet?.loading, false);
+  screen.dispose();
+});
+
+test('local screen lock preserves login and stores no plaintext lock password', async () => {
+  const f = fixture(); f.client.accept(session); f.client.user = admin;
+  const screen = new Screen(f.client, 'ant', () => {});
+  await screen.action('lock'); screen.input('form.lock_password', 'local-only'); await screen.action('set-lock');
+  assert.equal(screen.locked, true); assert.equal(f.client.accessToken, session.access_token);
+  assert.ok(!JSON.stringify([...f.storage.values()]).includes('local-only'));
+  assert.notEqual(f.client.screenLock?.hash, 'local-only'); assert.equal(screen.form.lock_password, undefined);
+  const restored = new Client(f.platform, f.client.base);
+  assert.equal(restored.screenLock?.hash, f.client.screenLock?.hash);
+  await screen.action('navigate', '/system/user'); assert.equal(f.routes.length, 0);
+  screen.input('lock.password', 'wrong'); await screen.action('unlock'); assert.equal(screen.locked, true);
+  screen.input('lock.password', 'local-only'); await screen.action('unlock'); assert.equal(screen.locked, false);
+  assert.equal(f.calls.length, 0); assert.equal(f.client.accessToken, session.access_token); screen.dispose();
+});
+
+test('enabled filters distinguish all, false and true; status filters retain multiple choices', async () => {
+  const f = fixture(async () => ({ status: 200, data: pageData() })); f.client.user = admin;
+  const screen = new Screen(f.client, 'ant', () => {}); screen.view = 'list'; screen.route = '/system/dictionary'; screen.resource = 'dictionary';
+  await screen.action('filters'); await screen.action('filter-picker', 'filter.enabled');
+  await screen.action('option', 'false'); assert.equal(screen.filters.enabled, 'false');
+  await screen.action('filter-picker', 'filter.enabled'); await screen.action('option', ''); assert.equal(screen.filters.enabled, undefined);
+  screen.close(true); screen.route = '/system/user'; screen.resource = 'user'; await screen.action('filters');
+  await screen.action('filter-picker', 'filter.status'); await screen.action('option', '0'); await screen.action('option', '2');
+  assert.deepEqual(screen.filters.status, [0, 2]); screen.dispose();
+});
+
+test('clearing the primary multi-filter draft does not remove already selected resource rules', async () => {
+  const f = fixture(async () => ({ status: 200, data: pageData() })); f.client.user = admin;
+  const screen = new Screen(f.client, 'tdesign', () => {}); screen.view = 'list'; screen.route = '/system/whitelist'; screen.resource = 'whitelist';
+  screen.query = 'GET|/user'; await screen.action('search'); assert.deepEqual(screen.filters.resource, ['GET|/user']);
+  assert.equal(screen.query, ''); await screen.action('search'); assert.deepEqual(screen.filters.resource, ['GET|/user']);
+  await screen.action('remove-filter-value', 'GET|/user'); assert.deepEqual(screen.filters.resource, []); screen.dispose();
+});
+
+test('whitelist direct query uses resource as its primary search and retains category zero', async () => {
+  const f = fixture(async url => {
+    if (url.endsWith('/auth/pub/refresh')) return { status: 200, data: session };
+    if (url.endsWith('/auth/info')) return { status: 200, data: admin };
+    return { status: 200, data: url.includes('/whitelist?') ? pageData() : { count: 0 } };
+  });
+  f.client.accept(session); const screen = new Screen(f.client, 'tdesign', () => {});
+  await screen.start('/system/whitelist', { resource: 'GET|/user', category: '0' });
+  const url = f.calls.find(c => c.url.includes('/whitelist?'))!.url;
+  assert.equal(new URL(url).searchParams.get('resource'), 'GET|/user'); assert.equal(new URL(url).searchParams.get('category'), '0');
+  assert.equal(screen.primaryFilter.key, 'resource'); screen.dispose();
+});
+
+test('column picker uses the same defaults as rendered rows and retains other columns on first toggle', async () => {
+  const f = fixture(); f.client.user = admin; const screen = new Screen(f.client, 'ant', () => {}); screen.resource = 'user-group';
+  await screen.action('columns'); assert.deepEqual(screen.snapshot().choices.filter(c => c.selected).map(c => c.value).sort(), ['action_codes', 'users', 'word']);
+  await screen.action('column', 'users'); assert.deepEqual(screen.visibleColumns, ['name', 'word', 'action_codes']); screen.dispose();
+});
+
+test('inbox read and personal delete use mutation endpoints without requesting details', async () => {
+  const f = fixture(async url => ({ status: 200, data: url.endsWith('unread-count') ? { count: 0 } : url.includes('/msg/inbox?') ? pageData() : {} })); f.client.user = admin;
+  const screen = new Screen(f.client, 'wot', () => {}); screen.route = '/msg/inbox'; screen.view = 'messages'; screen.records = [{ id: 3, title: 'Notice', created_at: 1, updated_at: 1 }]; screen.total = 1;
+  await screen.action('message-read', '3'); assert.ok(screen.records[0].read_at);
+  await screen.action('message-delete', '3'); assert.equal(screen.records.length, 0); assert.equal(screen.sheet, undefined);
+  assert.deepEqual(f.calls.filter(c => c.url.endsWith('/msg/inbox/3')).map(c => c.options.method), ['PATCH', 'DELETE']); screen.dispose();
+});
+
+test('menu-denied routes cannot expose or call mutations despite unrelated button grants', async () => {
+  const f = fixture(); f.client.user = { ...admin, permission: { menus: ['/system/role'], btns: ['*'] } };
+  const screen = new Screen(f.client, 'tdesign', () => {}); screen.route = '/system/user'; screen.view = 'list';
+  assert.equal(screen.snapshot().canCreate, false); await screen.edit(true); await screen.detail(3); await screen.save();
+  assert.equal(f.calls.length, 0); screen.dispose();
+});
+
+test('authentication Retry rechecks the username without replaying credentials and clears recovered errors', async () => {
+  let failed = true;
+  const f = fixture(async url => {
+    assert.ok(url.includes('/auth/pub/login/verification?username=alice'));
+    if (failed) throw new Error('offline');
+    return { status: 200, data: {} };
+  });
+  const screen = new Screen(f.client, 'ant', () => {}); screen.route = '/auth/login'; screen.view = 'auth';
+  screen.auth.username = 'alice'; screen.auth.password = 'still-typed';
+  await screen.verifyUsername(); assert.equal(screen.error, f.client.t('requestError'));
+  assert.equal(screen.snapshot().errorRetryAction, 'retry-auth-check'); assert.equal(screen.snapshot().canRetryError, true);
+  failed = false; await screen.action('retry-auth-check');
+  assert.equal(screen.error, ''); assert.equal(screen.auth.password, 'still-typed'); assert.equal(f.calls.length, 2);
+  assert.ok(f.calls.every(call => call.options.method === 'GET' && call.options.data === undefined));
+  screen.route = '/auth/reset-password'; assert.equal(screen.snapshot().canRetryError, false);
+  await screen.action('retry-auth-check'); assert.equal(f.calls.length, 2); screen.dispose();
+});
+
+test('every pagination change clears and reapplies the result scroll anchor', async () => {
+  const targets: string[] = [];
+  const f = fixture(async url => { const params = new URL(url).searchParams; return { status: 200, data: { ...pageData([{ id: Number(params.get('p')), username: 'row', created_at: 1, updated_at: 1 }], 150), p: Number(params.get('p')), s: Number(params.get('s')) } } });
+  f.client.user = admin; const screen = new Screen(f.client, 'tdesign', vm => targets.push(vm.scrollTarget)); screen.view = 'list'; screen.route = '/system/user'; screen.total = 150;
+  await screen.action('next'); assert.equal(screen.page, 2); assert.equal(screen.scrollTarget, 'results-top');
+  const start = targets.length; await screen.action('next');
+  assert.equal(screen.page, 3); assert.equal(targets[start], ''); assert.equal(targets.at(-1), 'results-top');
+  await screen.action('prev'); assert.equal(screen.page, 2); assert.equal(screen.scrollTarget, 'results-top');
+  await screen.action('page-size'); await screen.action('size-value', '50');
+  assert.equal(screen.page, 1); assert.equal(screen.size, 50); assert.equal(screen.scrollTarget, 'results-top');
+  assert.deepEqual(f.calls.map(call => new URL(call.url).searchParams.get('p')), ['2', '3', '2', '1']); screen.dispose();
+});
+
+test('lock expiration and message expiry use datetime fields without changing stored values', async () => {
+  const f = fixture(); f.client.user = admin; const screen = new Screen(f.client, 'wot', () => {}); screen.route = '/system/user'; screen.view = 'list';
+  await screen.action('lock-user'); const lock = screen.getFormFields().find(field => field.key === 'form.lockUntil')!;
+  assert.equal(lock.kind, 'datetime'); assert.equal(lock.required, true); assert.match(lock.value, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+  screen.close(true); screen.route = '/system/msg'; screen.view = 'messages'; await screen.action('compose');
+  const expiry = screen.getFormFields().find(field => field.key === 'form.expired_at')!;
+  assert.equal(expiry.kind, 'datetime'); assert.equal(expiry.required, false); assert.equal(expiry.value, ''); screen.dispose();
+});
+
+test('sent message columns stay independent from user columns and density options remain complete', async () => {
+  const f = fixture(); f.client.user = admin; const screen = new Screen(f.client, 'ant', () => {}); screen.route = '/system/msg'; screen.view = 'messages';
+  await screen.action('columns'); assert.deepEqual(screen.snapshot().choices.map(choice => choice.value), ['type', 'scope', 'published_at']);
+  await screen.action('column', 'scope'); assert.deepEqual(screen.visibleColumns, ['title', 'type', 'published_at']);
+  screen.records = [{ id: 2, title: 'Message', type: 'notice', scope: 'all', created_at: 1, updated_at: 1, published_at: 1 }];
+  assert.equal(screen.snapshot().messageRows[0].showScope, false);
+  screen.close(true); await screen.action('density'); assert.deepEqual(screen.snapshot().choices.map(choice => choice.value), ['compact', 'default', 'loose']);
+  screen.route = '/system/user'; screen.resource = 'user'; screen.view = 'list'; assert.deepEqual(screen.visibleColumns, ['username', 'role', 'status']); screen.dispose();
+});
+
+test('personal message center belongs to Mine while sent management remains in Manage', () => {
+  const f = fixture(); f.client.user = admin; const screen = new Screen(f.client, 'ant', () => {}); screen.view = 'messages'; screen.route = '/msg/inbox';
+  assert.equal(screen.snapshot().l.messageCenter, '消息中心');
+  assert.deepEqual(screen.snapshot().dock.filter(item => item.active).map(item => item.key), ['profile']);
+  f.client.locale = 'en-US'; assert.equal(screen.snapshot().l.messageCenter, 'Message center');
+  screen.route = '/system/msg'; assert.deepEqual(screen.snapshot().dock.filter(item => item.active).map(item => item.key), ['manage']); screen.dispose();
+});
+
+test('unread count carries between page instances and clears after read, delete and read-all', async () => {
+  let count = 2;
+  const f = fixture(async (url, options) => {
+    if (url.endsWith('/msg/unread-count')) return { status: 200, data: { count } };
+    if (url.endsWith('/msg/inbox/read-all')) count = 0;
+    else if (url.endsWith('/msg/inbox/3') && ['PATCH', 'DELETE'].includes(options.method)) count = Math.max(0, count - 1);
+    return { status: 200, data: url.includes('/msg/inbox?') ? pageData() : {} };
+  });
+  f.client.user = admin; const home = new Screen(f.client, 'ant', () => {}); await home.countMessages();
+  assert.equal(home.snapshot().unread, 2); const updates: number[] = [];
+  const inbox = new Screen(f.client, 'ant', vm => updates.push(vm.unread)); inbox.view = 'messages'; inbox.route = '/msg/inbox';
+  assert.equal(inbox.snapshot().unread, 2);
+  inbox.records = [{ id: 3, title: 'Unread', created_at: 1, updated_at: 1 }]; inbox.total = 1;
+  await inbox.action('message-read', '3'); assert.equal(inbox.snapshot().unread, 1); assert.equal(f.client.unread, 1);
+  await inbox.action('message-delete', '3'); assert.equal(inbox.snapshot().unread, 0); assert.equal(f.client.unread, 0);
+  count = 3; await inbox.countMessages(); await inbox.action('read-all');
+  assert.equal(inbox.snapshot().unread, 0); assert.equal(updates.at(-1), 0);
+  const profile = new Screen(f.client, 'wot', () => {}); assert.equal(profile.snapshot().unread, 0);
+  f.client.unread = 8; f.client.clear(); assert.equal(f.client.unread, 0);
+  home.dispose(); inbox.dispose(); profile.dispose();
+});
+
+test('late unread response cannot attach the previous account badge to a new session', async () => {
+  let resolve!: (value: any) => void;
+  const f = fixture(async () => new Promise(done => resolve = done)); f.client.accept(session);
+  const screen = new Screen(f.client, 'tdesign', () => {}); const pending = screen.countMessages();
+  f.client.clear(); f.client.accept({ ...session, access_token: 'different-account' });
+  resolve({ status: 200, data: { count: 9 } }); await pending;
+  assert.equal(f.client.unread, 0); assert.equal(screen.unread, 0); screen.dispose();
+});
+
+test('message-center back returns to My Account while sent management returns to applications', async () => {
+  const f=fixture(); const screen=new Screen(f.client,'ant',()=>{});
+  screen.view='messages'; screen.route='/msg/inbox'; await screen.action('back');
+  assert.equal(f.routes.at(-1),'/pages/profile/index');
+  screen.route='/system/msg'; await screen.action('back');
+  assert.equal(f.routes.at(-1),'/pages/dashboard/overview/index?tab=manage'); screen.dispose();
+});

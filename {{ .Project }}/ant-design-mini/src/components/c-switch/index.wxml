@@ -1,1 +1,1 @@
-<ant-switch checked="{{checked}}" controlled="{{true}}" bind:change="change" />
+<view class="switch-control" role="switch" aria-role="switch" aria-checked="{{checked}}" data-state="{{checked ? 'checked' : 'unchecked'}}"><ant-switch checked="{{checked}}" controlled="{{true}}" bind:change="change" /></view>

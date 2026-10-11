@@ -298,3 +298,18 @@ independently decrypt the mini-program JWE with JOSE, verify tamper rejection,
 exercise refresh races and credential transport, and check route/permission
 contracts. WeChat device verification still requires a developer AppID and
 normal platform login, permissions, HTTPS domain configuration, and packaging.
+
+Mini-program native E2E suites live in the sibling `e2e` repository under
+`tests/ant-design-mini`, `tests/tdesign-mini`, and `tests/wot-ui-mini`. They use
+WeChat's `miniprogram-automator` with serial Vitest runs against the actual
+WeChat output; H5 tests are not a substitute. The local full runner accepts only
+a loopback backend and restores temporary backend switches and local API
+configuration. Run `pnpm test:<ui-name>:full -- http://127.0.0.1:8081` there with
+valid `E2E_USERNAME` / `E2E_PASSWORD`.
+
+The three mini templates share prototype outline icons and matching per-region
+skeletons. Login settings use the footer gear; authenticated settings and the
+message center are under My Account, with unread dots on both the dock and the
+message-center row. Application management uses three columns. The security
+page's example devices are explicitly marked as demonstrations, as on 5671;
+local screen locking preserves the real authenticated session.

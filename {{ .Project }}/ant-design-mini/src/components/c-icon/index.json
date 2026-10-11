@@ -1,7 +1,4 @@
 {
   "component": true,
-  "styleIsolation": "shared",
-  "usingComponents": {
-    "ant-icon": "antd-mini/Icon/index"
-  }
+  "styleIsolation": "shared"
 }

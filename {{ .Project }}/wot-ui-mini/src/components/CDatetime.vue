@@ -1,0 +1,15 @@
+<script setup lang="ts">
+import {computed} from 'vue';
+import {formatDate} from '../core/format';
+const props=defineProps<{name:string;label?:string;timezone?:string;value:string;disabled?:boolean}>();
+const emit=defineEmits<{change:[value:{name:string;value:string}]}>();
+const date=computed(()=>(props.value||'').slice(0,10)),time=computed(()=>(props.value||'').slice(11,16));
+function preset(hours:number){emit('change',{name:props.name,value:formatDate(Date.now()+hours*3600000,props.timezone || 'UTC')})}
+function input(e:any){emit('change',{name:props.name,value:e.detail.value})}
+function dateChange(e:any){emit('change',{name:props.name,value:e.detail.value+' '+(time.value||'00:00')+':00'})}
+function timeChange(e:any){const d=new Date(),day=date.value||[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');emit('change',{name:props.name,value:day+' '+e.detail.value+':00'})}
+</script><template><view class="datetime-field"><input class="datetime-input" :name="name" :data-field="name" :value="value" :disabled="disabled" placeholder="YYYY-MM-DD HH:mm:ss" @input="input" /><view class="datetime-control"><picker mode="date" :value="date" :disabled="disabled" @change="dateChange" data-testid="datetime-date"><view class="datetime-part">{{date || 'YYYY-MM-DD'}}</view></picker><picker mode="time" :value="time" :disabled="disabled" @change="timeChange" data-testid="datetime-time"><view class="datetime-part">{{time || 'HH:mm'}}</view></picker><button v-if="value" class="datetime-clear" @tap="emit('change',{name,value:''})" :disabled="disabled" aria-label="×">×</button></view><view class="datetime-presets"><button class="datetime-preset" @tap="preset(1)">+1h</button><button class="datetime-preset" @tap="preset(24)">+1d</button><button class="datetime-preset" @tap="preset(168)">+1w</button></view></view></template>
+
+<style>.datetime-control{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-sizing:border-box}.datetime-part{min-height:46px;display:flex;align-items:center;padding:10px 12px;color:var(--text);font-size:14px;box-sizing:border-box}.datetime-control .datetime-clear{width:40px;min-width:40px;min-height:44px;margin:0 0 0 auto;padding:0;border:0;background:transparent;color:var(--muted);font-size:20px;line-height:44px}.datetime-clear::after{border:0}
+.datetime-input{display:block;width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-sizing:border-box;color:var(--text);font-size:14px}.datetime-control{margin-top:8px}.datetime-presets{display:flex;gap:8px;margin-top:8px}.datetime-presets .datetime-preset{display:flex;align-items:center;justify-content:center;min-height:38px;min-width:48px;width:auto;flex:0 0 auto;margin:0;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1.5}.datetime-preset::after{border:0}
+</style>

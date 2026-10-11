@@ -5,14 +5,15 @@
   "type": "module",
   "packageManager": "pnpm@10.2.0",
   "scripts": {
-    "dev": "node scripts/prepare.mjs && uni -p mp-weixin",
+    "dev": "node scripts/prepare.mjs --development && uni -p mp-weixin",
     "build": "node scripts/prepare.mjs && uni build -p mp-weixin",
-    "build:dev": "node scripts/build.mjs --development",
+    "build:dev": "node scripts/prepare.mjs --development && uni build -p mp-weixin --mode development",
     "check:type": "vue-tsc --noEmit",
     "test": "tsx --test src/core/*.test.ts",
     "lint": "vue-tsc --noEmit",
     "dev:h5": "node scripts/prepare.mjs && uni",
-    "build:h5": "node scripts/prepare.mjs && uni build"
+    "build:h5": "node scripts/prepare.mjs && uni build",
+    "check:crypto": "node scripts/check-wot-crypto.mjs"
   },
   "dependencies": {
     "node-forge": "1.4.0",

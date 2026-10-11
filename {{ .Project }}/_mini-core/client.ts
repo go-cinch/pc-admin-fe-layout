@@ -2,6 +2,7 @@ import type { Platform } from './platform';
 import { encryptJWE, randomID, type PublicJWK } from './jwe';
 import type { AuthInfo, SessionResult, PageResult, RecordData, ResourceKind } from './types';
 import { translate, type Locale } from './locale';
+import type { ScreenLock } from './lock';
 export class ApiError extends Error {
   constructor(public status: number, public data: any) { super(data?.msg || `HTTP ${status}`) }
 }
@@ -11,6 +12,8 @@ export class Client {
   refreshToken = '';
   resetRequired = false;
   user: AuthInfo | null = null;
+  unread = 0;
+  screenLock: ScreenLock | null = null;
   locale: Locale;
   generation = 0;
   onExpired = () => {};
@@ -23,6 +26,8 @@ export class Client {
     this.base = base.replace(/\/$/, '');
     this.prefix = `cinch-mini:${this.base}:`;
     this.refreshToken = String(platform.read(this.prefix + 'refresh') || '');
+    const lock = platform.read(this.prefix + 'lock') as Partial<ScreenLock> | undefined;
+    if (this.refreshToken && lock && Number.isInteger(lock.userId) && typeof lock.salt === 'string' && typeof lock.hash === 'string' && /^[a-f0-9]{64}$/.test(lock.hash)) this.screenLock = lock as ScreenLock;
     this.locale = platform.read(this.prefix + 'locale') === 'en-US' ? 'en-US' : 'zh-CN';
   }
   t(key: string, vars: Record<string, unknown> = {}) { return translate(this.locale, key, vars) }
@@ -48,7 +53,8 @@ export class Client {
     if (response.status === 401 && !options.public && generation === this.generation) { this.clear(); this.onExpired() }
     throw new ApiError(response.status, response.data);
   }
-  clear() { this.generation++; this.accessToken = ''; this.refreshToken = ''; this.user = null; this.resetRequired = false; this.platform.write(this.prefix + 'refresh', undefined) }
+  setScreenLock(lock: ScreenLock | null) { this.screenLock = lock; this.platform.write(this.prefix + 'lock', lock || undefined) }
+  clear() { this.generation++; this.accessToken = ''; this.refreshToken = ''; this.user = null; this.unread = 0; this.setScreenLock(null); this.resetRequired = false; this.platform.write(this.prefix + 'refresh', undefined) }
   accept(result: SessionResult) { this.generation++; this.accessToken = result.access_token; this.refreshToken = result.refresh_token; this.resetRequired = !!result.password_reset_required; this.platform.write(this.prefix + 'refresh', result.refresh_token) }
   refresh(): Promise<void> {
     if (this.refreshing) return this.refreshing;
@@ -64,7 +70,7 @@ export class Client {
     this.initializing ||= (async () => { try { if (this.refreshToken) { await this.refresh(); if (!this.resetRequired) await this.loadUser() } } finally { this.ready = true } })();
     return this.initializing;
   }
-  async loadUser(): Promise<void> { const generation = this.generation; const user = await this.request<AuthInfo>('/auth/info'); if (generation === this.generation) this.user = user; else if (this.accessToken && !this.resetRequired) return this.loadUser() }
+  async loadUser(): Promise<void> { const generation = this.generation; const user = await this.request<AuthInfo>('/auth/info'); if (generation === this.generation) { this.user = user; if (this.screenLock && this.screenLock.userId !== user.id) this.setScreenLock(null) } else if (this.accessToken && !this.resetRequired) return this.loadUser() }
   async logout() { try { if (this.refreshing) await this.refreshing.catch(() => {}); if (this.refreshToken) await this.request('/auth/pub/logout', { method: 'POST', public: true, body: { refresh_token: this.refreshToken } }) } finally { this.clear() } }
   async credentials(purpose: 'login' | 'register' | 'password_change' | 'password_reset', payload: Record<string, unknown>) {
     const authenticated = purpose.startsWith('password');
