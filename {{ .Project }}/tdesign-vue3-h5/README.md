@@ -1,13 +1,13 @@
-# Go Cinch · 月白 / TDesign Mobile Vue
+# Go Cinch · 月白 / TDesign H5
 
-Vue 3 mobile admin implementation of the `mobile-admin` prototype, using Tencent TDesign Mobile Vue 1.16.2. Authentication and all six management resources use the real Go Cinch auth service. There are no demo accounts, mock APIs or locally fabricated business records in this application.
+Vue 3 H5 admin implementation of the `mobile-admin` prototype, using Tencent TDesign Mobile Vue 1.16.2. Authentication and all six management resources use the real Go Cinch auth service. There are no demo accounts, mock APIs or locally fabricated business records in this application.
 
 ## Generate and run locally
 
 ```sh
 cd /Users/eric/dev/learning/go-cinch/pc-admin-fe-layout
-make local DEMO=tdesign-vue3-mobile
-cd ../demos/tdesign-vue3-mobile
+make local DEMO=tdesign-vue3-h5
+cd ../demos/tdesign-vue3-h5
 pnpm install --frozen-lockfile
 pnpm dev
 ```
@@ -32,6 +32,10 @@ Access tokens stay in memory. Refresh tokens rotate and persist separately. The 
 
 ## Validation
 
+Browser settings use `cinch-moonwhite-*`. On the same origin, old `cinch-mobile-*` preferences, language, refresh session and search histories migrate on read; the screen lock migrates in session storage. Existing new keys win, and old keys are removed after a successful copy. Logout and history clearing also remove the corresponding old key. The initial HTML theme reader accepts either preference key to avoid a theme flash. Changing the deployment origin does not transfer browser storage between hosts.
+
+The central E2E selectors match these H5 project names. Type checking and `--list` discovery do not execute stateful scenarios.
+
 ```sh
 pnpm lint
 pnpm check:type
@@ -39,8 +43,8 @@ pnpm test
 pnpm build
 cd ../../e2e
 pnpm typecheck
-E2E_FRONTEND=tdesign-vue3-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5670 pnpm exec playwright test --list
-pnpm test:tdesign-vue3-mobile:full -- http://127.0.0.1:5670/
+E2E_FRONTEND=tdesign-vue3-h5 E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5670 pnpm exec playwright test --list
+pnpm test:tdesign-vue3-h5:full -- http://127.0.0.1:5670/
 ```
 
 The central E2E suite is headless and loopback-only. It drives the rendered UI, observes resulting network traffic and removes each test-owned record through the UI in `finally`. See `IMPLEMENTATION.md` for the completion audit. Tencent's upstream MIT license is preserved in `LICENSE_TDESIGN`.
@@ -49,8 +53,8 @@ The central E2E suite is headless and loopback-only. It drives the rendered UI, 
 
 See [UI_FIXES.md](UI_FIXES.md) for the 25-item audit follow-up. Resource lists now separate visible fields from density, use compact business summaries and provide guarded editor closing. Keyboard slider verification uses the same server challenge and proof endpoints. The security page shows real account information; the unimplemented messages entry is hidden.
 
-Focused, UI-only regressions live in the central `tests/tdesign-vue3-mobile/ui-audit-regression.spec.ts`. They do not submit business CRUD, moderation or password changes:
+Focused, UI-only regressions live in the central `tests/tdesign-vue3-h5/ui-audit-regression.spec.ts`. They do not submit business CRUD, moderation or password changes:
 
 ```sh
-E2E_FRONTEND=tdesign-vue3-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5670 pnpm exec playwright test ui-audit-regression.spec.ts
+E2E_FRONTEND=tdesign-vue3-h5 E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5670 pnpm exec playwright test ui-audit-regression.spec.ts
 ```

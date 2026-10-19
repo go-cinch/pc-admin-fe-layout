@@ -12,7 +12,7 @@ VBEN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'vben-antd-vue3'
 TAIL_TEMPLATE = LAYOUT / '{{ .Project }}' / 'tail-react'
 ART_TEMPLATE = LAYOUT / '{{ .Project }}' / 'art-eleplus-vue3'
 SHADCN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'shadcn-react'
-TDESIGN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'tdesign-vue3-mobile'
+TDESIGN_TEMPLATE = LAYOUT / '{{ .Project }}' / 'tdesign-vue3-h5'
 SCAFFOLD = os.environ.get('SCAFFOLD', 'scaffold')
 DEFAULT_PRODUCTION_API_URL = 'https://entry.go-cinch.top/api/auth'
 ARTIFACT_NAMES = {
@@ -194,7 +194,7 @@ def validate_shadcn(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
 
 def validate_tdesign(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
                      production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
-    assert not (project / 'tdesign-vue3-mobile').exists()
+    assert not (project / 'tdesign-vue3-h5').exists()
     assert not (project / 'vben-antd-vue3').exists()
     assert not (project / 'apps').exists()
     assert (project / 'LICENSE_TDESIGN').is_file()
@@ -222,16 +222,16 @@ def validate_tdesign(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert_template_integrity(TDESIGN_TEMPLATE, project)
 
 
-def validate_ant_mobile(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
+def validate_ant_h5(project, production_api_url=DEFAULT_PRODUCTION_API_URL,
                         production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
-    assert not any((project / x).exists() for x in ['ant-design-mobile', 'tdesign-vue3-mobile', 'vben-antd-vue3', 'apps'])
+    assert not any((project / x).exists() for x in ['ant-design-h5', 'tdesign-vue3-h5', 'vben-antd-vue3', 'apps'])
     package = json.loads((project / 'package.json').read_text())
     assert package['name'] == project.name
     assert package['dependencies']['antd-mobile'] == '5.43.0'
     assert 'react' in package['dependencies'] and 'vue' not in package['dependencies']
     assert (project / 'pnpm-lock.yaml').is_file()
     assert (project / 'LICENSE_ANT_DESIGN_MOBILE').is_file()
-    source = LAYOUT / '{{ .Project }}' / 'ant-design-mobile'
+    source = LAYOUT / '{{ .Project }}' / 'ant-design-h5'
     for page in ['AuthPage', 'OverviewPage', 'ManagementPage', 'ProfilePage']:
         assert (project / 'src/pages' / (page + '.tsx')).is_file()
     client = (project / 'src/lib/api.ts').read_text()
@@ -331,10 +331,10 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
     validate_shadcn(output / 'shadcn-production-urls', custom_api_url, custom_auth_api_url)
     for name, options in {
-        'tdesign-explicit': ['ui=tdesign-vue3-mobile'],
-        'tdesign-alias': ['ui=tdesign-mobile'],
-        'tdesign-preset': ['--preset=tdesign-vue3-mobile'],
-        'tdesign-alias-preset': ['--preset=tdesign-mobile'],
+        'tdesign-explicit': ['ui=tdesign-vue3-h5'],
+        'tdesign-alias': ['ui=tdesign-h5'],
+        'tdesign-preset': ['--preset=tdesign-vue3-h5'],
+        'tdesign-alias-preset': ['--preset=tdesign-h5'],
     }.items():
         run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
              '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
@@ -342,53 +342,53 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
         print(f'PASS {name}', flush=True)
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
          '--run-hooks=always', '--no-prompt', 'Project=tdesign-production-urls',
-         'ui=tdesign-vue3-mobile', f'VITE_GLOB_API_URL={custom_api_url}',
+         'ui=tdesign-vue3-h5', f'VITE_GLOB_API_URL={custom_api_url}',
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
     validate_tdesign(output / 'tdesign-production-urls', custom_api_url, custom_auth_api_url)
     local_output = output / 'local-demos'
-    run(['make', 'local', 'DEMO=tdesign-vue3-mobile', f'DEMOS_DIR={local_output}'])
-    local_mobile = local_output / 'tdesign-vue3-mobile'
+    run(['make', 'local', 'DEMO=tdesign-vue3-h5', f'DEMOS_DIR={local_output}'])
+    local_h5 = local_output / 'tdesign-vue3-h5'
     # The local environment is deliberately preserved; the source invariant checker
     # excludes it, so remove only this test fixture while checking generated source.
-    local_env = local_mobile / '.env.development.local'
+    local_env = local_h5 / '.env.development.local'
     env_text = local_env.read_text()
     assert 'VITE_PORT=' in env_text and 'AUTH_PROXY_TARGET=' in env_text
     local_env.unlink()
-    validate_tdesign(local_mobile)
+    validate_tdesign(local_h5)
     local_env.write_text('VITE_PORT=5999\nAUTH_PROXY_TARGET=http://127.0.0.1:8081\n')
-    run(['make', 'local', 'DEMO=tdesign-vue3-mobile', f'DEMOS_DIR={local_output}'])
+    run(['make', 'local', 'DEMO=tdesign-vue3-h5', f'DEMOS_DIR={local_output}'])
     assert local_env.read_text() == 'VITE_PORT=5999\nAUTH_PROXY_TARGET=http://127.0.0.1:8081\n'
-    run(['make', 'local', 'DEMO=custom-mobile', 'UI=tdesign-mobile', f'DEMOS_DIR={local_output}'])
-    assert (local_output / 'custom-mobile/src/main.ts').is_file()
+    run(['make', 'local', 'DEMO=custom-h5', 'UI=tdesign-h5', f'DEMOS_DIR={local_output}'])
+    assert (local_output / 'custom-h5/src/main.ts').is_file()
     print('PASS TDesign local selection, explicit override, environment preservation', flush=True)
     for name, options in {
-        'ant-mobile-explicit': ['ui=ant-design-mobile'],
-        'ant-mobile-alias': ['ui=antd-mobile'],
-        'ant-mobile-preset': ['--preset=ant-design-mobile'],
-        'ant-mobile-alias-preset': ['--preset=antd-mobile'],
+        'ant-h5-explicit': ['ui=ant-design-h5'],
+        'ant-h5-alias': ['ui=antd-h5'],
+        'ant-h5-preset': ['--preset=ant-design-h5'],
+        'ant-h5-alias-preset': ['--preset=antd-h5'],
     }.items():
         run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
              '--run-hooks=always', '--no-prompt', f'Project={name}', *options])
-        validate_ant_mobile(output / name)
+        validate_ant_h5(output / name)
         print(f'PASS {name}', flush=True)
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
-         '--run-hooks=always', '--no-prompt', 'Project=ant-mobile-production',
-         'ui=ant-design-mobile', f'VITE_GLOB_API_URL={custom_api_url}',
+         '--run-hooks=always', '--no-prompt', 'Project=ant-h5-production',
+         'ui=ant-design-h5', f'VITE_GLOB_API_URL={custom_api_url}',
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
-    validate_ant_mobile(output / 'ant-mobile-production', custom_api_url, custom_auth_api_url)
-    run(['make', 'local', 'DEMO=ant-design-mobile', f'DEMOS_DIR={local_output}'])
-    generated_ant = local_output / 'ant-design-mobile'
+    validate_ant_h5(output / 'ant-h5-production', custom_api_url, custom_auth_api_url)
+    run(['make', 'local', 'DEMO=ant-design-h5', f'DEMOS_DIR={local_output}'])
+    generated_ant = local_output / 'ant-design-h5'
     ant_env = generated_ant / '.env.development.local'
     saved_ant_env = ant_env.read_text()
     assert 'VITE_PORT=' in saved_ant_env and 'AUTH_PROXY_TARGET=' in saved_ant_env
     ant_env.unlink()
-    validate_ant_mobile(generated_ant)
+    validate_ant_h5(generated_ant)
     ant_env.write_text(saved_ant_env)
-    run(['make', 'local', 'DEMO=ant-design-mobile', f'DEMOS_DIR={local_output}'])
+    run(['make', 'local', 'DEMO=ant-design-h5', f'DEMOS_DIR={local_output}'])
     assert ant_env.read_text() == saved_ant_env
-    run(['make', 'local', 'DEMO=custom-ant-mobile', 'UI=antd-mobile', f'DEMOS_DIR={local_output}'])
-    assert (local_output / 'custom-ant-mobile/src/main.tsx').is_file()
-    print('PASS Ant Mobile local selection, overrides, environment preservation', flush=True)
+    run(['make', 'local', 'DEMO=custom-ant-h5', 'UI=antd-h5', f'DEMOS_DIR={local_output}'])
+    assert (local_output / 'custom-ant-h5/src/main.tsx').is_file()
+    print('PASS Ant H5 local selection, overrides, environment preservation', flush=True)
     for invalid in ['antd', 'element-plus', 'invalid']:
         name = f'invalid-{invalid}'
         run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
@@ -418,15 +418,15 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     run([SCAFFOLD, 'new', str(staged), f'--output-dir={output}',
          '--run-hooks=always', '--no-prompt', 'Project=isolated-ui'])
     validate_vben(output / 'isolated-ui')
-    mobile_staged = staged / '{{ .Project }}' / 'tdesign-vue3-mobile'
+    h5_staged = staged / '{{ .Project }}' / 'tdesign-vue3-h5'
     for relative in ['node_modules/fake/index.js', 'dist/index.html',
                      '.env.development.local', '.vite/cache.json', 'install.log']:
-        artifact = mobile_staged / relative
+        artifact = h5_staged / relative
         artifact.parent.mkdir(parents=True, exist_ok=True)
         artifact.write_text('[[scaffold invalid template scaffold]]')
     run([SCAFFOLD, 'new', str(staged), f'--output-dir={output}',
-         '--run-hooks=always', '--no-prompt', 'Project=isolated-mobile', 'ui=tdesign-mobile'])
-    validate_tdesign(output / 'isolated-mobile')
+         '--run-hooks=always', '--no-prompt', 'Project=isolated-h5', 'ui=tdesign-h5'])
+    validate_tdesign(output / 'isolated-h5')
     print('PASS Make entry, hooks, invalid selectors, asset integrity, workspace closure', flush=True)
     # Existing root files must not be overwritten while flattening the UI.
     conflict = output / 'conflict-ui'
@@ -437,29 +437,29 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     assert (conflict / 'package.json').read_text() == 'existing project'
     assert not (conflict / 'apps').exists(), 'hook moved files before conflict check'
     assert 'destination already exists' in result.stdout + result.stderr, result.stdout + result.stderr
-    mobile_conflict = output / 'conflict-mobile'
-    mobile_conflict.mkdir()
-    (mobile_conflict / 'package.json').write_text('existing mobile project')
+    h5_conflict = output / 'conflict-h5'
+    h5_conflict.mkdir()
+    (h5_conflict / 'package.json').write_text('existing h5 project')
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
          '--run-hooks=always', '--no-prompt', '--overwrite',
-         'Project=conflict-mobile', 'ui=tdesign-mobile'], success=False)
-    assert (mobile_conflict / 'package.json').read_text() == 'existing mobile project'
-    assert not (mobile_conflict / 'src').exists()
+         'Project=conflict-h5', 'ui=tdesign-h5'], success=False)
+    assert (h5_conflict / 'package.json').read_text() == 'existing h5 project'
+    assert not (h5_conflict / 'src').exists()
     print('PASS UI selection, flat output, artifact exclusion, and collision protection', flush=True)
 
-    ant_staged = staged / '{{ .Project }}' / 'ant-design-mobile'
+    ant_staged = staged / '{{ .Project }}' / 'ant-design-h5'
     for relative in ['node_modules/fake/index.js', 'dist/index.html', '.env.development.local', '.vite/cache.json']:
         artifact = ant_staged / relative
         artifact.parent.mkdir(parents=True, exist_ok=True)
         artifact.write_text('[[scaffold invalid template scaffold]]')
     run([SCAFFOLD, 'new', str(staged), f'--output-dir={output}', '--run-hooks=always',
-         '--no-prompt', 'Project=isolated-ant-mobile', 'ui=antd-mobile'])
-    validate_ant_mobile(output / 'isolated-ant-mobile')
-    conflict = output / 'conflict-ant-mobile'
+         '--no-prompt', 'Project=isolated-ant-h5', 'ui=antd-h5'])
+    validate_ant_h5(output / 'isolated-ant-h5')
+    conflict = output / 'conflict-ant-h5'
     conflict.mkdir()
     (conflict / 'package.json').write_text('existing ant mobile project')
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
-         '--no-prompt', '--overwrite', 'Project=conflict-ant-mobile', 'ui=antd-mobile'], success=False)
+         '--no-prompt', '--overwrite', 'Project=conflict-ant-h5', 'ui=antd-h5'], success=False)
     assert (conflict / 'package.json').read_text() == 'existing ant mobile project'
     assert not (conflict / 'src').exists()
-    print('PASS Ant Mobile artifacts and collision protection', flush=True)
+    print('PASS Ant H5 artifacts and collision protection', flush=True)

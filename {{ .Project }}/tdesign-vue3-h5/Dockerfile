@@ -11,7 +11,7 @@ RUN corepack enable
 
 WORKDIR /app
 COPY . .
-RUN --mount=type=cache,id=tdesign-vue3-mobile-pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=tdesign-vue3-h5-pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 RUN pnpm run build
 

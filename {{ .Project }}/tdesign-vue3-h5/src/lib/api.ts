@@ -13,7 +13,7 @@ import type {
 import { trimCredential } from './validation';
 
 const base = (import.meta.env.VITE_GLOB_AUTH_API_URL || '/api/auth').replace(/\/$/, '');
-const refreshKey = `cinch-mobile-session:${location.hostname}`;
+const refreshKey = `cinch-moonwhite-session:${location.hostname}`;
 let sessionGeneration = 0;
 export const session = reactive({
   accessToken: '',

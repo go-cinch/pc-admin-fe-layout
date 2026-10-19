@@ -52,11 +52,11 @@
 - 选项超过 30 条的场景使用单元测试中的 37 条数据验证分页契约，没有向实际业务库灌入测试数据。
 - 浏览器仿真覆盖 320/375/390/430/768/844/1024/1440px 与横屏；真机软键盘和系统手势不属于此次自动验收结论。
 
-本地安全回归命令（只选取不修改业务数据的场景）：
+本地安全回归命令（只选取不修改业务数据的场景；命令已使用 H5 工程名；以上历史测试结果不代表本次重新执行）：
 
 ```sh
 cd /Users/eric/dev/learning/go-cinch/e2e
-E2E_FRONTEND=ant-design-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5671 \
+E2E_FRONTEND=ant-design-h5 E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5671 \
   pnpm exec playwright test ui-regressions.spec.ts webkit-ui.spec.ts boundaries.spec.ts \
   responsive.spec.ts shell.spec.ts auth.spec.ts management-controls.spec.ts permissions.spec.ts \
   --grep-invert 'registration uses|first-login reset|Guest retains|search suggestions, history'

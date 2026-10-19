@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
-const key = 'cinch-mobile-preferences';
+const key = 'cinch-moonwhite-preferences';
 const stored = new Map<string, string>();
 let dataset: Record<string, string>;
 let attributes: Map<string, string>;
@@ -17,6 +19,7 @@ beforeEach(() => {
     removeItem: (name: string) => stored.delete(name),
   });
   vi.stubGlobal('document', {
+    querySelector: () => null,
     documentElement: {
       dataset,
       setAttribute: (name: string, value: string) => attributes.set(name, value),
@@ -26,7 +29,46 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('mobile theme preferences', () => {
+describe('Moonwhite H5 theme preferences', () => {
+  it('restores legacy preferences before persisting the current namespace', async () => {
+    const saved = { accent: 'jade', dark: true, timezone: 'Asia/Tokyo', company: 'Saved company' };
+    stored.set('cinch-mobile-preferences', JSON.stringify(saved));
+    const { preferences } = await import('./preferences');
+    expect(preferences).toMatchObject(saved);
+    expect(JSON.parse(stored.get(key)!)).toMatchObject(saved);
+    expect(stored.has('cinch-mobile-preferences')).toBe(false);
+  });
+
+  it.each(['legacy only', 'both namespaces'])(
+    'uses the matching theme before app startup: %s',
+    (scenario) => {
+      stored.set('cinch-mobile-preferences', JSON.stringify({ accent: 'jade', dark: true }));
+      if (scenario === 'both namespaces') {
+        stored.set(key, JSON.stringify({ accent: 'berry', dark: false }));
+      }
+      const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+      const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+      expect(script).toBeTruthy();
+      const themeColor = { content: '' };
+      runInNewContext(script!, {
+        localStorage,
+        document: {
+          documentElement: {
+            dataset,
+            setAttribute: (name: string, value: string) => attributes.set(name, value),
+          },
+          querySelector: () => themeColor,
+        },
+      });
+      expect(dataset).toMatchObject(
+        scenario === 'legacy only'
+          ? { accent: 'jade', theme: 'dark' }
+          : { accent: 'berry', theme: 'light' },
+      );
+      expect(themeColor.content).toBe(scenario === 'legacy only' ? '#17231f' : '#f5f5f7');
+    },
+  );
+
   it('defaults to graphite and applies it before user interaction', async () => {
     const { preferences } = await import('./preferences');
     expect(preferences.accent).toBe('graphite');

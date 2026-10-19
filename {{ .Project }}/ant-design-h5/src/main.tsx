@@ -2,7 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import 'antd-mobile/es/global';
-import './ant-design-mobile.css';
+import './ant-design-h5.css';
 
 document.addEventListener(
   'wheel',

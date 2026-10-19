@@ -23,7 +23,7 @@ const defaults = {
   icp: '',
   icpLink: '',
 };
-const stored = readStored<Partial<typeof defaults>>('cinch-mobile-preferences', {});
+const stored = readStored<Partial<typeof defaults>>('cinch-moonwhite-preferences', {});
 export const preferences = reactive({
   ...defaults,
   ...stored,
@@ -32,7 +32,7 @@ export const preferences = reactive({
 watch(
   preferences,
   () => {
-    writeStored('cinch-mobile-preferences', preferences);
+    writeStored('cinch-moonwhite-preferences', preferences);
     document.documentElement.dataset.theme = preferences.dark ? 'dark' : 'light';
     document
       .querySelector('link[rel="icon"][type="image/svg+xml"]')

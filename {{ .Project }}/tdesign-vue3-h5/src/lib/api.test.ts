@@ -18,6 +18,20 @@ beforeEach(async () => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+it('restores a legacy refresh session once and cannot revive it after sign-out', async () => {
+  stored.set('cinch-mobile-session:localhost', JSON.stringify('saved-refresh'));
+  vi.resetModules();
+  api = await import('./api');
+  expect(api.session.refreshToken).toBe('saved-refresh');
+  expect(stored.has('cinch-mobile-session:localhost')).toBe(false);
+  expect(stored.get('cinch-moonwhite-session:localhost')).toBe('"saved-refresh"');
+  api.clearSession();
+  vi.resetModules();
+  api = await import('./api');
+  expect(api.session.refreshToken).toBe('');
+  expect(stored.has('cinch-moonwhite-session:localhost')).toBe(false);
+});
+
 it('omits cleared multi-value filters while retaining explicit false and zero filters', async () => {
   const fetch = vi.fn(async (_url: string) => Response.json({ items: [], t: 0 }));
   vi.stubGlobal('fetch', fetch);

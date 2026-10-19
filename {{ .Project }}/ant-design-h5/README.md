@@ -1,18 +1,18 @@
-# Go Cinch · 绛钛 / Ant Design Mobile
+# Go Cinch · 绛钛 / Ant Design H5
 
 React 18 + Ant Design Mobile 5.43 implementation of **`mobile-admin/index2.html` (绛钛 / Garnet Titanium)**. The warm titanium and burgundy palette and mobile bottom sheets retain that visual direction. The September 2026 usability revision reserves layout space for the mobile dock and presents the mobile app inside a centered phone frame on desktop. The backend, credentials and business data are real; no prototype accounts or local mock records are included.
 
 ```sh
 cd /Users/eric/dev/learning/go-cinch/pc-admin-fe-layout
-make local DEMO=ant-design-mobile
-cd ../demos/ant-design-mobile
+make local DEMO=ant-design-h5
+cd ../demos/ant-design-h5
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
 The generated `.env.development.local` preserves the selected port and `AUTH_PROXY_TARGET=http://127.0.0.1:8081` on regeneration. The local assignment is **5671**, following the existing assignments 5666–5670. The native Vite proxy removes `/api/auth` once: `/api/auth/auth/pub/login` reaches backend `/auth/pub/login`, while browser `/auth/login` remains an application route. Follow `chi-auth-layout/LOCAL_DEV_WORKFLOW.md` for backend setup.
 
-The maintained template is `pc-admin-fe-layout/{{ .Project }}/ant-design-mobile`; the generated runnable output is `demos/ant-design-mobile`. Ant Design Mobile is an upstream component library rather than a ready-made admin application, so this template uses its published components in a standalone Vite application. Its MIT license is preserved in `LICENSE_ANT_DESIGN_MOBILE`; see `THIRD_PARTY_NOTICES.md`.
+The maintained template is `pc-admin-fe-layout/{{ .Project }}/ant-design-h5`; the generated runnable output is `demos/ant-design-h5`. Ant Design Mobile is an upstream component library rather than a ready-made admin application, so this template uses its published components in a standalone Vite application. Its MIT license is preserved in `LICENSE_ANT_DESIGN_MOBILE`; see `THIRD_PARTY_NOTICES.md`.
 
 ## Routes and behavior
 
@@ -27,6 +27,13 @@ The application supports Chinese and English, light/dark garnet themes, reduced 
 
 ## Checks
 
+Browser settings retain the `cinch-garnet-*` namespace. TDesign uses its own
+`cinch-moonwhite-*` keys. Changing the deployment origin does not transfer browser
+storage between hosts.
+
+The central E2E selectors match these H5 project names. Type checking and
+`--list` discovery do not execute stateful scenarios.
+
 ```sh
 pnpm lint
 pnpm check:type
@@ -34,8 +41,8 @@ pnpm test
 pnpm build
 cd ../../e2e
 pnpm typecheck
-E2E_FRONTEND=ant-design-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5671 pnpm exec playwright test --list
-pnpm test:ant-design-mobile:full -- http://127.0.0.1:5671/
+E2E_FRONTEND=ant-design-h5 E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5671 pnpm exec playwright test --list
+pnpm test:ant-design-h5:full -- http://127.0.0.1:5671/
 ```
 
 The headless central E2E suite exercises the visible UI on the loopback service, observes security-sensitive traffic, restores built-in resources and removes test-owned data in failure-path cleanup. Validation status and evidence are recorded in `IMPLEMENTATION.md`.

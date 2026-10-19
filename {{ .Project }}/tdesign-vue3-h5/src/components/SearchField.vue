@@ -16,7 +16,7 @@ const busy = ref(false);
 const suggestionError = ref('');
 const clearTimeout = window.clearTimeout.bind(window);
 const multiple = computed(() => props.field.type === 'input-multi-select');
-const historyKey = computed(() => `cinch-mobile-filter:${props.resource}:${props.field.key}`);
+const historyKey = computed(() => `cinch-moonwhite-filter:${props.resource}:${props.field.key}`);
 const history = ref<string[]>(readStored(historyKey.value, []));
 const text = computed({
   get: () => (multiple.value ? query.value : String(model.value ?? '')),

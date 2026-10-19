@@ -8,6 +8,7 @@ import zhCN from 'tdesign-mobile-vue/es/locale/zh_CN';
 import { session, logout, canMenu } from './lib/api';
 import { modules } from './lib/navigation';
 import { preferences as p } from './lib/preferences';
+import { readStored, writeStored } from './lib/storage';
 import { locale, t, toggleLocale } from './locales';
 import Icon from './components/Icon.vue';
 import Sheet from './components/Sheet.vue';
@@ -82,12 +83,12 @@ function navigate(value: string) {
       : { path: '/dashboard/overview', query: value === 'home' ? {} : { tab: value } },
   );
 }
-let savedLock: { hash?: string; salt?: string; userId?: number } = {};
-try {
-  savedLock = JSON.parse(sessionStorage.getItem('cinch-mobile-lock') || '{}');
-} catch {
-  /* An unavailable browser store leaves locking in memory. */
-}
+let savedLock =
+  readStored<{ hash?: string; salt?: string; userId?: number }>(
+    'cinch-moonwhite-lock',
+    {},
+    'session',
+  ) || {};
 const locked = ref(!!savedLock.hash);
 const lockPassword = ref('');
 const unlockPassword = ref('');
@@ -99,11 +100,7 @@ function clearLock() {
   lockHash = '';
   lockSalt = '';
   savedLock = {};
-  try {
-    sessionStorage.removeItem('cinch-mobile-lock');
-  } catch {
-    /* In-memory locking remains available. */
-  }
+  writeStored('cinch-moonwhite-lock', undefined, 'session');
 }
 watch(
   () => session.user,
@@ -135,11 +132,7 @@ async function lock() {
   lockSalt = crypto.randomUUID();
   lockHash = await digest(lockPassword.value);
   savedLock = { hash: lockHash, salt: lockSalt, userId: session.user?.id };
-  try {
-    sessionStorage.setItem('cinch-mobile-lock', JSON.stringify(savedLock));
-  } catch {
-    /* Keep the current view locked even without persistent storage. */
-  }
+  writeStored('cinch-moonwhite-lock', savedLock, 'session');
   lockPassword.value = '';
   locked.value = true;
   panel.value = '';

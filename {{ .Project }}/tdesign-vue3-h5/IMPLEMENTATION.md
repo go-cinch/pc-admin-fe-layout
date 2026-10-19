@@ -1,4 +1,6 @@
-# TDesign Mobile · 月白 implementation
+# TDesign H5 · 月白 implementation
+
+> H5 naming update: generation and command examples use the renamed H5 identifiers. The delivery audit and test totals below describe the earlier delivery, not a rerun for this cleanup.
 
 Source: Tencent/tdesign-mobile-vue, develop 99cacdfeb13fd563991b97353cf550e2fba67bd0 (1.16.2). The upstream repository is a component library, so the application consumes its published package. Its MIT license is preserved verbatim in LICENSE_TDESIGN. Upstream declares pnpm 10.2.0 and has no committed application lockfile; this application's dependency lock is generated with that pnpm version.
 
@@ -33,11 +35,11 @@ Delivery audit completed on 2026-09-27:
 
 ## Local runtime
 
-- Template: `/Users/eric/dev/learning/go-cinch/pc-admin-fe-layout/{{ .Project }}/tdesign-vue3-mobile`
-- Generated demo: `/Users/eric/dev/learning/go-cinch/demos/tdesign-vue3-mobile`
+- Template: `/Users/eric/dev/learning/go-cinch/pc-admin-fe-layout/{{ .Project }}/tdesign-vue3-h5`
+- Generated demo: `/Users/eric/dev/learning/go-cinch/demos/tdesign-vue3-h5`
 - Frontend: `http://127.0.0.1:5670/`
 - Backend/proxy target: `http://127.0.0.1:8081`
-- Generation: `make local DEMO=tdesign-vue3-mobile`
+- Generation: `make local DEMO=tdesign-vue3-h5`
 - The ignored generated `.env.development.local` preserves its assigned port and proxy on regeneration.
 - The generated backend was validated with `make lint test build` and started with `SERVICE_HTTP_ADDR=:8081 ./bin/auth -c ./conf`, since its existing HTTP config specified port 8080. Auth switches were not changed and `enableE2ETest` remained false.
 
@@ -61,8 +63,8 @@ From `/Users/eric/dev/learning/go-cinch/e2e`, all passed:
 
 ```sh
 pnpm typecheck
-E2E_FRONTEND=tdesign-vue3-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5670 pnpm exec playwright test --list
-pnpm test:tdesign-vue3-mobile:full -- http://127.0.0.1:5670/
+E2E_FRONTEND=tdesign-vue3-h5 E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5670 pnpm exec playwright test --list
+pnpm test:tdesign-vue3-h5:full -- http://127.0.0.1:5670/
 ```
 
 The complete headless full suite reports **38 passed, 0 failed, 0 skipped**. Every intended full-mode case passed. This includes both built-in-record restoration cases, six-resource CRUD, trimmed credential flows, associations, encrypted auth/reset/change, session invalidation, captcha interactions, review and temporary locking, permission boundaries, direct-entry/refresh and recoverable-error behavior, pagination/page size, table controls, batch cleanup, locale/copyright and responsive behavior. Dedicated Mobile Chromium and Mobile WebKit projects exercise touch verification, dock navigation and nested sheets.

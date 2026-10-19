@@ -13,14 +13,14 @@ import {
   Textarea,
 } from 'tdesign-mobile-vue';
 import 'tdesign-mobile-vue/es/style/index.css';
-import './tdesign-mobile.css';
+import './tdesign-h5.css';
 import App from './App.vue';
 import { router } from './router';
 import AccessibleSwitch from './components/AccessibleSwitch.vue';
 import AccessibleInput from './components/AccessibleInput.vue';
 import AccessibleRadio from './components/AccessibleRadio.vue';
 
-// Keep the mobile admin shell at its designed scale. Browser-menu zoom remains
+// Keep the H5 admin shell at its designed scale. Browser-menu zoom remains
 // controlled by the browser and cannot be disabled by a web application.
 document.addEventListener(
   'wheel',

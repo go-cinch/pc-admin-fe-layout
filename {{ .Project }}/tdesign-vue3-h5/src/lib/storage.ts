@@ -1,16 +1,39 @@
-export function readStored<T>(key: string, fallback: T): T {
+type StorageKind = 'local' | 'session';
+
+function legacyKey(key: string): string | undefined {
+  return key.startsWith('cinch-moonwhite-')
+    ? key.replace(/^cinch-moonwhite-/, 'cinch-mobile-')
+    : undefined;
+}
+
+export function readStored<T>(key: string, fallback: T, kind: StorageKind = 'local'): T {
   try {
-    const value = localStorage.getItem(key);
-    return value ? (JSON.parse(value) as T) : fallback;
+    const store = kind === 'session' ? sessionStorage : localStorage;
+    const previousKey = legacyKey(key);
+    const current = store.getItem(key);
+    const value = current ?? (previousKey ? store.getItem(previousKey) : null);
+    const parsed = value ? (JSON.parse(value) as T) : fallback;
+    if (previousKey && value !== null) {
+      try {
+        // New values win. Retain the old entry if copying it fails.
+        if (current === null) store.setItem(key, value);
+        store.removeItem(previousKey);
+      } catch {
+        /* Keep the restored value available in memory when storage is full. */
+      }
+    }
+    return parsed;
   } catch {
     return fallback;
   }
 }
-export function writeStored(key: string, value: unknown) {
+export function writeStored(key: string, value: unknown, kind: StorageKind = 'local') {
   try {
-    value === undefined
-      ? localStorage.removeItem(key)
-      : localStorage.setItem(key, JSON.stringify(value));
+    const store = kind === 'session' ? sessionStorage : localStorage;
+    const previousKey = legacyKey(key);
+    value === undefined ? store.removeItem(key) : store.setItem(key, JSON.stringify(value));
+    // Clearing a session or history must also clear its migration source.
+    if (previousKey) store.removeItem(previousKey);
   } catch {
     /* Private browsing may disable persistent storage. */
   }

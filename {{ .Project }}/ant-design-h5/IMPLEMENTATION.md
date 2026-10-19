@@ -1,5 +1,7 @@
 # Implementation audit
 
+> H5 naming update: generation and command examples use the renamed H5 identifiers. The delivery audit and test totals below describe the earlier delivery, not a rerun for this cleanup.
+
 > Updated 2026-09-29 after aligning the template with the current Go Cinch mobile design and E2E requirements. See [UI_FIXES.md](UI_FIXES.md) for the detailed UI review.
 
 Visual authority: `/Users/eric/dev/learning/go-cinch/mobile-admin/index2.html`, **绛钛 / Garnet Titanium**. Its light/dark palette, metal team card, glass dock, desktop presentation and sheet placement are preserved. No source from the 月白 `mobile-admin/index.html` is used.
@@ -16,15 +18,15 @@ Functional authority: the current Vben template's core/system/dashboard/profile 
 | Search and result controls | Remote suggestions, matching highlights, removable history, deduplicated collapsible filters, grouped pagination, redesigned batch selection, density, column visibility and style controls. Mobile fullscreen is intentionally omitted.                                                                                                                                                         |
 | Shell and permissions      | Overview/profile availability, protected-route and button guards, wildcard workspace permission, ordered tools, pin/close tabs, avatar menu and persistent screen lock. Guest and read-only accounts are covered.                                                                                                                                                                                |
 | Localization and branding  | Chinese/English, reactive validation messages, current-language API headers, logo variants, shared editable copyright and persisted appearance settings. Timestamp values use the selected timezone; plain wall-time strings remain unchanged.                                                                                                                                                   |
-| Scaffold integration       | Selector `ant-design-mobile`, alias `antd-mobile`, presets, Make selection, flat generation, persisted local environment and first-free-port allocation. Complete layout suite passes.                                                                                                                                                                                                           |
+| Scaffold integration       | Selector `ant-design-h5`, alias `antd-h5`, presets, Make selection, flat generation, persisted local environment and first-free-port allocation. Complete layout suite passes.                                                                                                                                                                                                                   |
 
 ## Runtime and generation
 
-- Template: `/Users/eric/dev/learning/go-cinch/pc-admin-fe-layout/{{ .Project }}/ant-design-mobile`
-- Demo: `/Users/eric/dev/learning/go-cinch/demos/ant-design-mobile`
+- Template: `/Users/eric/dev/learning/go-cinch/pc-admin-fe-layout/{{ .Project }}/ant-design-h5`
+- Demo: `/Users/eric/dev/learning/go-cinch/demos/ant-design-h5`
 - Frontend: `http://127.0.0.1:5671/`
 - Backend/proxy target: `http://127.0.0.1:8081`
-- Generate: `make local DEMO=ant-design-mobile`
+- Generate: `make local DEMO=ant-design-h5`
 - Start: `pnpm dev` in the generated demo.
 
 The ignored `.env.development.local` preserves port 5671 and the proxy target across regeneration. Source/demo integrity and the flattened generated root were checked. Existing TDesign and unrelated worktree changes were preserved. The auth backend was reused without editing its configuration or enabling captcha bypasses. One earlier run encountered a temporary backend outage; the complete suite was rerun successfully after service recovery.
@@ -36,7 +38,7 @@ From the layout repository:
 ```sh
 scaffold lint scaffold.yml
 make test
-make local DEMO=ant-design-mobile
+make local DEMO=ant-design-h5
 ```
 
 The complete layout suite covers all UI families, selectors/aliases/presets, custom production URLs, Make entry points, flat output, source/asset integrity, artifact exclusion, collision safety and local environment preservation.
@@ -57,11 +59,11 @@ From `/Users/eric/dev/learning/go-cinch/e2e`:
 
 ```sh
 pnpm typecheck
-E2E_FRONTEND=ant-design-mobile E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5671 pnpm exec playwright test --list
-pnpm test:ant-design-mobile:full -- http://127.0.0.1:5671/
+E2E_FRONTEND=ant-design-h5 E2E_MODE=full E2E_BASE_URL=http://127.0.0.1:5671 pnpm exec playwright test --list
+pnpm test:ant-design-h5:full -- http://127.0.0.1:5671/
 ```
 
-The final headless full run reports **38 passed, 0 failed, 0 skipped**. Every intended full-mode case passed. JUnit evidence is `e2e/test-results/ant-design-mobile.xml`; coverage is in `e2e/tests/ant-design-mobile`.
+The final headless full run reports **38 passed, 0 failed, 0 skipped**. Every intended full-mode case passed. Historical JUnit evidence remains under `e2e/test-results/ant-design-mobile.xml`; the current suite is in `e2e/tests/ant-design-h5`.
 
 Responsive coverage includes 320, 375, 390, 430, 768, 844, 1024 and 1440px, portrait/landscape, dark mode, reduced transparency/motion, nested-sheet Escape behavior, viewport zoom configuration, copyright scroll boundaries and a desktop sheet-boundary assertion. Chromium and WebKit checks passed real login, keyboard verification, all six editor sheets, loading deadlines, independent skeletons, timezone behavior, desktop frame placement and zero page errors. Physical-device acceptance was not run.
 

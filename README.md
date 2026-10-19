@@ -1,6 +1,6 @@
 # Go-Cinch PC Admin Layout
 
-Generate a PC admin frontend integrated with `chi-auth-layout` using Scaffold.
+Generate PC and H5 admin frontends integrated with `chi-auth-layout` using Scaffold.
 The repository follows the backend layout: `scaffold.yml` defines generation
 parameters, `{{ .Project }}/<ui>` contains each UI template, and the Makefile
 provides generation and validation commands.
@@ -10,7 +10,7 @@ The additional **`tail-react`** option uses TailAdmin, React 19, Vite, and
 Tailwind CSS 4. **`art-eleplus-vue3`** uses Art Design Pro, Vue 3, and
 Element Plus. **`shadcn-react`** uses Next.js 16, React 19, and shadcn/ui.
 `vben`, `tail`, `art`, and `shadcn` are aliases for those options.
-**`tdesign-vue3-mobile`** (alias **`tdesign-mobile`**) implements the Moonwhite
+**`tdesign-vue3-h5`** (alias **`tdesign-h5`**) implements the Moonwhite
 mobile-admin prototype with Vue 3 and Tencent TDesign Mobile Vue. Its standalone
 application uses pnpm 10.2.0 and a committed lockfile.
 
@@ -32,8 +32,8 @@ make full PROJECT=my-admin UI=tail-react OUTPUT_DIR=/path/to/projects
 make full PROJECT=my-admin UI=art-eleplus-vue3 OUTPUT_DIR=/path/to/projects
 # Generate the shadcn/ui option (Bun lockfile retained)
 make full PROJECT=my-admin UI=shadcn-react OUTPUT_DIR=/path/to/projects
-# Generate the mobile TDesign option
-make full PROJECT=my-admin UI=tdesign-vue3-mobile OUTPUT_DIR=/path/to/projects
+# Generate the TDesign H5 option
+make full PROJECT=my-admin UI=tdesign-vue3-h5 OUTPUT_DIR=/path/to/projects
 # Supported alias
 make full PROJECT=my-admin UI=vben
 # Override production API URLs
@@ -234,8 +234,8 @@ File contents use `[[scaffold ... scaffold]]` as Scaffold delimiters to avoid
 conflicts with Vue's `{{ ... }}` syntax. Paths continue to use Scaffold's default
 `{{ .Project }}` syntax.
 
-### Ant Design Mobile · 绛钛
+### Ant Design H5 · 绛钛
 
-`make local DEMO=ant-design-mobile` generates the React mobile implementation of `mobile-admin/index2.html` into `demos/ant-design-mobile`. Select `ui=ant-design-mobile` (alias `antd-mobile`) or the corresponding preset. It preserves the garnet light/dark prototype styling and uses the same real auth and management APIs as Vben. The local port allocator selects the first unassigned port above 5666 and preserves `.env.development.local`; this demo currently uses 5671.
+`make local DEMO=ant-design-h5` generates the React H5 implementation of `mobile-admin/index2.html` into `demos/ant-design-h5`. Select `ui=ant-design-h5` (alias `antd-h5`) or the corresponding preset. It preserves the garnet light/dark prototype styling and uses the same real auth and management APIs as Vben. The local port allocator selects the first unassigned port above 5666 and preserves `.env.development.local`; this demo currently uses 5671.
 
-See [`{{ .Project }}/ant-design-mobile/README.md`](<{{ .Project }}/ant-design-mobile/README.md>) for development and validation commands.
+See [`{{ .Project }}/ant-design-h5/README.md`](<{{ .Project }}/ant-design-h5/README.md>) for development and validation commands.

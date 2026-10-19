@@ -8,12 +8,12 @@ import enPage from './en-US/page.json';
 import { readStored, writeStored } from '../lib/storage';
 
 export const locale = ref<'zh-CN' | 'en-US'>(
-  readStored<string>('cinch-mobile-language', 'zh-CN') === 'en-US' ? 'en-US' : 'zh-CN',
+  readStored<string>('cinch-moonwhite-language', 'zh-CN') === 'en-US' ? 'en-US' : 'zh-CN',
 );
 watch(
   locale,
   (value) => {
-    writeStored('cinch-mobile-language', value);
+    writeStored('cinch-moonwhite-language', value);
     document.documentElement.lang = value;
   },
   { immediate: true },

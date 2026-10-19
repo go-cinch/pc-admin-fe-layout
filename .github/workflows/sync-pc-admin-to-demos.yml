@@ -16,8 +16,8 @@ on:
           - art-eleplus-vue3
           - shadcn-react
           - tail-react
-          - tdesign-vue3-mobile
-          - ant-design-mobile
+          - tdesign-vue3-h5
+          - ant-design-h5
 
 concurrency:
   group: sync-admin-frontends-to-demos
@@ -60,8 +60,8 @@ jobs:
               {"name": "art-eleplus-vue3"},
               {"name": "shadcn-react"},
               {"name": "tail-react"},
-              {"name": "tdesign-vue3-mobile"},
-              {"name": "ant-design-mobile"},
+              {"name": "tdesign-vue3-h5"},
+              {"name": "ant-design-h5"},
           ]
           with open(os.environ["GITHUB_EVENT_PATH"]) as source:
               event = json.load(source)
@@ -188,7 +188,7 @@ jobs:
               npm ci
               npm run build
               ;;
-            tdesign-vue3-mobile|ant-design-mobile)
+            tdesign-vue3-h5|ant-design-h5)
               pnpm install --frozen-lockfile
               pnpm run build
               ;;

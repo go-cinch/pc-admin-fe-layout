@@ -19,7 +19,7 @@ questions:
     prompt:
       message: Admin UI?
       type: select
-      options: [vben-antd-vue3, tail-react, art-eleplus-vue3, shadcn-react, tdesign-vue3-mobile, ant-design-mobile]
+      options: [vben-antd-vue3, tail-react, art-eleplus-vue3, shadcn-react, tdesign-vue3-h5, ant-design-h5]
       default: vben-antd-vue3
 
   - name: VITE_GLOB_API_URL
@@ -34,7 +34,7 @@ questions:
 
 computed:
   # Native template errors reject invalid CLI values before writing any files.
-  ui_final: '{{ $ui := or .Scaffold.ui "vben-antd-vue3" }}{{ if or (eq $ui "vben-antd-vue3") (eq $ui "vben") }}vben-antd-vue3{{ else if or (eq $ui "tail-react") (eq $ui "tail") }}tail-react{{ else if or (eq $ui "art-eleplus-vue3") (eq $ui "art") }}art-eleplus-vue3{{ else if or (eq $ui "shadcn-react") (eq $ui "shadcn") }}shadcn-react{{ else if or (eq $ui "tdesign-vue3-mobile") (eq $ui "tdesign-mobile") }}tdesign-vue3-mobile{{ else if or (eq $ui "ant-design-mobile") (eq $ui "antd-mobile") }}ant-design-mobile{{ else }}{{ template "ui must be vben-antd-vue3 (alias vben), tail-react (alias tail), art-eleplus-vue3 (alias art), shadcn-react (alias shadcn), tdesign-vue3-mobile (alias tdesign-mobile), or ant-design-mobile (alias antd-mobile)" . }}{{ end }}'
+  ui_final: '{{ $ui := or .Scaffold.ui "vben-antd-vue3" }}{{ if or (eq $ui "vben-antd-vue3") (eq $ui "vben") }}vben-antd-vue3{{ else if or (eq $ui "tail-react") (eq $ui "tail") }}tail-react{{ else if or (eq $ui "art-eleplus-vue3") (eq $ui "art") }}art-eleplus-vue3{{ else if or (eq $ui "shadcn-react") (eq $ui "shadcn") }}shadcn-react{{ else if or (eq $ui "tdesign-vue3-h5") (eq $ui "tdesign-h5") }}tdesign-vue3-h5{{ else if or (eq $ui "ant-design-h5") (eq $ui "antd-h5") }}ant-design-h5{{ else }}{{ template "ui must be vben-antd-vue3 (alias vben), tail-react (alias tail), art-eleplus-vue3 (alias art), shadcn-react (alias shadcn), tdesign-vue3-h5 (alias tdesign-h5), or ant-design-h5 (alias antd-h5)" . }}{{ end }}'
 
 # Keep Vue {{ expressions }} and embedded template strings intact.
 # Only [[scaffold ... scaffold]] is interpreted as Scaffold syntax in file contents.
@@ -52,10 +52,10 @@ features:
     globs: ['**/art-eleplus-vue3/**']
   - value: '{{ eq .Computed.ui_final "shadcn-react" }}'
     globs: ['**/shadcn-react/**']
-  - value: '{{ eq .Computed.ui_final "tdesign-vue3-mobile" }}'
-    globs: ['**/tdesign-vue3-mobile/**']
-  - value: '{{ eq .Computed.ui_final "ant-design-mobile" }}'
-    globs: ['**/ant-design-mobile/**']
+  - value: '{{ eq .Computed.ui_final "tdesign-vue3-h5" }}'
+    globs: ['**/tdesign-vue3-h5/**']
+  - value: '{{ eq .Computed.ui_final "ant-design-h5" }}'
+    globs: ['**/ant-design-h5/**']
   # Exclude installed dependencies and local artifacts even if they exist locally.
   - value: 'false'
     globs:
@@ -106,11 +106,11 @@ presets:
     ui: shadcn-react
   shadcn:
     ui: shadcn-react
-  tdesign-vue3-mobile:
-    ui: tdesign-vue3-mobile
-  tdesign-mobile:
-    ui: tdesign-vue3-mobile
-  ant-design-mobile:
-    ui: ant-design-mobile
-  antd-mobile:
-    ui: ant-design-mobile
+  tdesign-vue3-h5:
+    ui: tdesign-vue3-h5
+  tdesign-h5:
+    ui: tdesign-vue3-h5
+  ant-design-h5:
+    ui: ant-design-h5
+  antd-h5:
+    ui: ant-design-h5
