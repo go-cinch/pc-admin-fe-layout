@@ -2,6 +2,7 @@
 """Exercise every Scaffold UI's real flattened output and binary assets."""
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 import subprocess
@@ -17,7 +18,7 @@ SCAFFOLD = os.environ.get('SCAFFOLD', 'scaffold')
 DEFAULT_PRODUCTION_API_URL = 'https://entry.go-cinch.top/api/auth'
 ARTIFACT_NAMES = {
     '.cache', '.git', '.next', '.nitro', '.output', '.pnpm-store', '.stylelintcache',
-    '.turbo', '.vite', '.yarn', '__pycache__', 'coverage', 'dist',
+    '.turbo', '.vite', '.yarn', '__pycache__', 'coverage', 'dist', 'dist.zip',
     'build', 'node_modules', 'out',
 }
 
@@ -93,6 +94,13 @@ def validate_vben(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
             assert 'auth2' not in content, path
     request = (project / 'apps/web-antd/src/api/request.ts').read_text()
     assert "|| '/api/auth'" in request
+    assert "VITE_GLOB_ORDER_API_URL || '/api/order'" in request
+    assert 'export function createServiceRequestClient' in request
+    agents = (project / 'AGENTS.md').read_text()
+    assert agents.split('## ', 1)[1].startswith('1. Route API requests through a client for each service')
+    assert "authRequestClient.get('/info')" in agents
+    assert "orderRequestClient.get('/list')" in agents
+    assert re.search(r"\.get(?:<[^>]+>)?\('/info'[,)]", (project / 'apps/web-antd/src/api/core/user.ts').read_text())
     config = (project / 'apps/web-antd/vite.config.ts').read_text()
     assert 'AUTH_PROXY_TARGET' in config and 'http://127.0.0.1' not in config
     assert 'preview-local.go-cinch.top' in config

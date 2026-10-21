@@ -71,7 +71,7 @@ local:
 		status=$$?; \
 		trap - EXIT INT TERM; \
 		if [ -f "$$env_backup" ]; then \
-			cp -p "$$env_backup" "$$env_file"; \
+			if ! cmp -s "$$env_backup" "$$env_file"; then cp -p "$$env_backup" "$$env_file"; fi; \
 			restored_secure_key=$$(read_secure_key "$$env_file"); \
 			if [ "$$restored_secure_key" != "$$secure_key" ]; then \
 				printf 'failed to restore VITE_APP_STORE_SECURE_KEY in %s\n' "$$env_file" >&2; \
@@ -101,6 +101,9 @@ local:
 		'logo_path=$(subst ','"'"',$(LOGO_PATH))' \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
 		"VITE_GLOB_AUTH_API_URL=$(VITE_GLOB_AUTH_API_URL)"; \
+	if [ -f "$$env_backup" ]; then \
+		cp -p "$$env_backup" "$$staging_dir/$$project/apps/web-antd/.env"; \
+	fi; \
 	rsync -a --checksum --delete \
 		--exclude='.git/' \
 		--exclude='.DS_Store' \
