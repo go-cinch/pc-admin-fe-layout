@@ -119,12 +119,12 @@ describe('message entry acknowledgement', () => {
 
   it('notifies mounted entry indicators when messages are visited', () => {
     const listener = vi.fn();
-    window.addEventListener('cinch-msg-seen', listener);
+    window.addEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-seen', listener);
     try {
       visitMessages(undefined);
       expect(listener).toHaveBeenCalledOnce();
     } finally {
-      window.removeEventListener('cinch-msg-seen', listener);
+      window.removeEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-seen', listener);
     }
   });
 });

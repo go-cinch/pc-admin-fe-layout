@@ -123,12 +123,12 @@ describe('message service contract', () => {
 
   it('emits the shared change event', () => {
     const listener = vi.fn();
-    window.addEventListener('cinch-msg-changed', listener);
+    window.addEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-changed', listener);
     try {
       msgChanged();
       expect(listener).toHaveBeenCalledOnce();
     } finally {
-      window.removeEventListener('cinch-msg-changed', listener);
+      window.removeEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-changed', listener);
     }
   });
 });

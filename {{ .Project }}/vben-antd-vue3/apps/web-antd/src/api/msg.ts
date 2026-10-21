@@ -54,7 +54,7 @@ export interface MsgUser {
   username: string;
 }
 export function msgChanged() {
-  window.dispatchEvent(new Event('cinch-msg-changed'));
+  window.dispatchEvent(new Event('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-changed'));
 }
 
 export const msgPreviewFields = 'id,title,summary,type,published_at,read_at';

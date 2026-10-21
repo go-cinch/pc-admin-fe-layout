@@ -138,18 +138,18 @@ function openHistory(id?: number | string) {
 onMounted(() => {
   void refresh();
   timer = setInterval(refresh, 30000);
-  window.addEventListener('cinch-msg-seen', syncSeen);
+  window.addEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-seen', syncSeen);
   window.addEventListener('storage', syncSeen);
-  window.addEventListener('cinch-msg-changed', refresh);
+  window.addEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-changed', refresh);
   document.addEventListener('visibilitychange', refresh);
 });
 onBeforeUnmount(() => {
   disposed = true;
   generation++;
   clearInterval(timer);
-  window.removeEventListener('cinch-msg-seen', syncSeen);
+  window.removeEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-seen', syncSeen);
   window.removeEventListener('storage', syncSeen);
-  window.removeEventListener('cinch-msg-changed', refresh);
+  window.removeEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-changed', refresh);
   document.removeEventListener('visibilitychange', refresh);
 });
 </script>

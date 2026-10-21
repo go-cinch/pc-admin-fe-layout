@@ -43,6 +43,8 @@ def validate(project, title, lower, slug, extension='.svg', logo=None, github=No
     assert f'VITE_GLOB_AUTH_API_URL={expected_api}\n' in (app / '.env.production').read_text()
     for path in project.rglob('*'):
         assert '{{' not in str(path.relative_to(project)), path
+        relative = str(path.relative_to(project))
+        assert not re.search(r'(?<!go[ _-])cinch', relative, re.I), path
         if not path.is_file():
             continue
         try:
@@ -50,16 +52,21 @@ def validate(project, title, lower, slug, extension='.svg', logo=None, github=No
         except UnicodeError:
             continue
         assert '[[scaffold' not in content, path
+        assert not re.search(r'(?<!go[ _-])cinch', content, re.I), path
         if slug != 'go-cinch':
-            assert not re.search(r'go[ _-]*cinch', content, re.I), path
+            assert not re.search(r'cinch', content + relative, re.I), path
         if logo:
             assert str(logo) not in content, path
         if path.suffix == '.json':
             json.loads(content)
     english = json.loads((app / 'src/locales/langs/en-US/app.json').read_text())
     chinese = json.loads((app / 'src/locales/langs/zh-CN/app.json').read_text())
-    assert f'Sign in to {title}' in json.dumps(english, ensure_ascii=False)
-    assert f'进入 {title}' in json.dumps(chinese, ensure_ascii=False)
+    assert english['journey']['description'] == f'Sign in to {title} Admin and pick up where you left off'
+    assert chinese['journey']['description'] == f'进入 {title} Admin，继续今天的工作'
+    assert f'description="{title} Admin"' in (app / 'src/layouts/basic.vue').read_text()
+    about = (project / 'packages/effects/common-ui/src/ui/about/about.vue').read_text()
+    assert f"name: '{title} Admin'" in about
+    assert ':href="projectGithubUrl"' in about
 
 
 with tempfile.TemporaryDirectory(prefix='vben-branding-') as temporary:

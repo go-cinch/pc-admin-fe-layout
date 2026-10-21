@@ -100,7 +100,7 @@ watch(
 );
 onMounted(() => {
   void load();
-  window.addEventListener('cinch-msg-changed', refreshVisible);
+  window.addEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-changed', refreshVisible);
   document.addEventListener('visibilitychange', refreshVisible);
   timer = setInterval(() => {
     if (!loading.value) refreshVisible();
@@ -116,7 +116,7 @@ onDeactivated(deactivate);
 onBeforeUnmount(() => {
   deactivate();
   clearInterval(timer);
-  window.removeEventListener('cinch-msg-changed', refreshVisible);
+  window.removeEventListener('[[scaffold (fromJSON .Computed.brand).slug scaffold]]-msg-changed', refreshVisible);
   document.removeEventListener('visibilitychange', refreshVisible);
 });
 </script>

@@ -101,7 +101,7 @@ const logoSrc = computed(() => {
           <p v-if="appName" class="m-0 whitespace-nowrap font-medium">
             <span class="text-base min-[360px]:hidden">[[scaffold (fromJSON .Computed.brand).title scaffold]]</span>
             <span class="hidden text-lg min-[360px]:inline lg:hidden">
-              [[scaffold (fromJSON .Computed.brand).title scaffold]] Admin
+              [[scaffold (fromJSON .Computed.brand).admin_title scaffold]]
             </span>
             <span class="hidden text-xl lg:inline">{{ appName }}</span>
           </p>

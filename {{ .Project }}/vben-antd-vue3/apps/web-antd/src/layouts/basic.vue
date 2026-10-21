@@ -102,7 +102,7 @@ watch(
         :avatar-alt="userStore.userInfo?.username"
         :menus
         :text="userStore.userInfo?.realName"
-        description="[[scaffold (fromJSON .Computed.brand).slug scaffold]]"
+        description="[[scaffold (fromJSON .Computed.brand).admin_title scaffold]]"
         @clear-preferences-and-logout="handleLogout"
         @logout="handleLogout"
       />
