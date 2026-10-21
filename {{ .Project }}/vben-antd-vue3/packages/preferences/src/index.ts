@@ -24,8 +24,8 @@ function definePreferencesExtension<
 
 /** 应用级版权配置，供各 app 的 preferences 覆盖使用 */
 const appCopyrightPreferences = {
-  companyName: 'go cinch',
-  companySiteLink: 'https://github.com/go-cinch/demos',
+  companyName: '[[scaffold (fromJSON .Computed.brand).lower scaffold]]',
+  companySiteLink: '[[scaffold .Computed.github_url_final scaffold]]',
   date: '2024',
   enable: true,
   icp: '闽ICP备19024351号',

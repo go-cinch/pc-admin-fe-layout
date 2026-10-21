@@ -20,13 +20,13 @@ export const applicationBrandingPreferences = {
     name: import.meta.env.VITE_APP_TITLE,
   },
   copyright: {
-    companyName: 'go-cinch',
-    companySiteLink: 'https://github.com/go-cinch/demos',
+    companyName: '[[scaffold (fromJSON .Computed.brand).slug scaffold]]',
+    companySiteLink: '[[scaffold .Computed.github_url_final scaffold]]',
     date: String(new Date().getFullYear()),
   },
   logo: {
-    source: `${import.meta.env.BASE_URL}go-cinch.svg`,
-    sourceDark: `${import.meta.env.BASE_URL}go-cinch-white.svg`,
+    source: `${import.meta.env.BASE_URL}[[scaffold (fromJSON .Computed.brand).slug scaffold]][[scaffold .Computed.logo_ext scaffold]]`,
+    sourceDark: `${import.meta.env.BASE_URL}[[scaffold (fromJSON .Computed.brand).slug scaffold]]-white[[scaffold .Computed.logo_ext scaffold]]`,
   },
 };
 

@@ -12,8 +12,8 @@ defineOptions({
 });
 
 withDefaults(defineProps<Props>(), {
-  companyName: 'go-cinch',
-  companySiteLink: 'https://github.com/go-cinch/demos',
+  companyName: '[[scaffold (fromJSON .Computed.brand).slug scaffold]]',
+  companySiteLink: '[[scaffold .Computed.github_url_final scaffold]]',
   date: String(new Date().getFullYear()),
   icp: '',
   icpLink: '',

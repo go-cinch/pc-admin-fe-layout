@@ -7,7 +7,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 const getDefaultPwaOptions = (name: string): Partial<PwaPluginOptions> => ({
   manifest: {
     description:
-      'go cinch is a modern admin dashboard template based on Vue 3. ',
+      '[[scaffold (fromJSON .Computed.brand).lower scaffold]] is a modern admin dashboard template based on Vue 3. ',
     icons: [
       {
         sizes: '192x192',

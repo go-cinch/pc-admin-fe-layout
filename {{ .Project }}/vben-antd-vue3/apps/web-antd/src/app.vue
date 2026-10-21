@@ -17,10 +17,10 @@ watch(
   isDark,
   (dark) => {
     document
-      .querySelector('link[rel="icon"][type="image/svg+xml"]')
+      .querySelector('link[rel="icon"]')
       ?.setAttribute(
         'href',
-        `${import.meta.env.BASE_URL}${dark ? 'go-cinch-white.svg' : 'go-cinch.svg'}`,
+        `${import.meta.env.BASE_URL}${dark ? '[[scaffold (fromJSON .Computed.brand).slug scaffold]]-white[[scaffold .Computed.logo_ext scaffold]]' : '[[scaffold (fromJSON .Computed.brand).slug scaffold]][[scaffold .Computed.logo_ext scaffold]]'}`,
       );
   },
   { immediate: true },

@@ -102,7 +102,7 @@ watch(
         :avatar-alt="userStore.userInfo?.username"
         :menus
         :text="userStore.userInfo?.realName"
-        description="go-cinch"
+        description="[[scaffold (fromJSON .Computed.brand).slug scaffold]]"
         @clear-preferences-and-logout="handleLogout"
         @logout="handleLogout"
       />

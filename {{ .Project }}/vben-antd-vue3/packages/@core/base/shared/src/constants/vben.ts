@@ -11,7 +11,7 @@ export const VBEN_DOC_URL = 'https://doc.vben.pro';
 /**
  * @zh_CN 模板默认 Logo，保留原导出名以兼容现有引用
  */
-export const VBEN_LOGO_URL = `${import.meta.env.BASE_URL}go-cinch.svg`;
+export const VBEN_LOGO_URL = `${import.meta.env.BASE_URL}[[scaffold (fromJSON .Computed.brand).slug scaffold]][[scaffold .Computed.logo_ext scaffold]]`;
 
 /**
  * @zh_CN Vben Admin 首页地址

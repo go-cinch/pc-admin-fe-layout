@@ -10,6 +10,20 @@ if [ ! -d "$ui_dir" ]; then
   exit 1
 fi
 
+logo_path='{{ or .Scaffold.logo_path "" | replace "\u0027" "\u0027\"\u0027\"\u0027" }}'
+brand_slug='{{ (fromJSON .Computed.brand).slug }}'
+logo_ext='{{ .Computed.logo_ext }}'
+if [ -n "$logo_path" ]; then
+  if [ '{{ .Computed.ui_final }}' != 'vben-antd-vue3' ]; then
+    printf 'logo_path is supported only by the Vben template\n' >&2
+    exit 1
+  fi
+  if [ ! -f "$logo_path" ] || [ ! -r "$logo_path" ] || [ ! -s "$logo_path" ]; then
+    printf 'Logo must be a readable, non-empty file: %s\n' "$logo_path" >&2
+    exit 1
+  fi
+fi
+
 # Check every destination before moving anything, including hidden files.
 for source in "$ui_dir"/* "$ui_dir"/.[!.]* "$ui_dir"/..?*; do
   [ -e "$source" ] || [ -L "$source" ] || continue
@@ -25,3 +39,14 @@ for source in "$ui_dir"/* "$ui_dir"/.[!.]* "$ui_dir"/..?*; do
   mv "$source" "$project_dir/"
 done
 rmdir "$ui_dir"
+
+if [ -n "$logo_path" ]; then
+  public_dir="$project_dir/apps/web-antd/public"
+  # Preserve the supplied bytes; a single image serves both themes and favicon.
+  for suffix in '' '-white' '-favicon'; do
+    cp "$logo_path" "$public_dir/$brand_slug$suffix$logo_ext"
+    if [ "$logo_ext" != '.svg' ]; then
+      rm "$public_dir/$brand_slug$suffix.svg"
+    fi
+  done
+fi

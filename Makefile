@@ -1,7 +1,10 @@
 .DEFAULT_GOAL := full
-.PHONY: full lint test local
+.PHONY: test-branding full lint test local
 
 SCAFFOLD ?= scaffold
+BRAND_NAME ?= go cinch
+GITHUB_URL ?=
+LOGO_PATH ?=
 PROJECT ?= pc-admin
 OUTPUT_DIR ?= ..
 DEMOS_DIR ?= $(CURDIR)/../demos
@@ -11,8 +14,8 @@ AUTH_PROXY_TARGET ?= http://127.0.0.1:8081
 TAIL_REACT_PORT ?= 5667
 ART_ELEPLUS_VUE3_PORT ?= 5668
 SHADCN_REACT_PORT ?= 5669
-VITE_GLOB_API_URL ?= https://entry.go-cinch.top/api/auth
-VITE_GLOB_AUTH_API_URL ?= https://entry.go-cinch.top/api/auth
+VITE_GLOB_API_URL ?=
+VITE_GLOB_AUTH_API_URL ?=
 
 ifeq ($(filter $(UI),vben-antd-vue3 vben tail-react tail art-eleplus-vue3 art shadcn-react shadcn tdesign-vue3-h5 tdesign-h5 ant-design-h5 antd-h5),)
 $(error UI must be vben-antd-vue3, tail-react, art-eleplus-vue3, shadcn-react, tdesign-vue3-h5, or ant-design-h5 (or a supported alias))
@@ -22,13 +25,15 @@ full:
 	$(SCAFFOLD) new "$(CURDIR)" --output-dir="$(OUTPUT_DIR)" \
 		--run-hooks=always --no-prompt --preset=full \
 		"Project=$(PROJECT)" "ui=$(UI)" \
+		'brand_name=$(subst ','"'"',$(BRAND_NAME))' 'github_url=$(subst ','"'"',$(GITHUB_URL))' \
+		'logo_path=$(subst ','"'"',$(LOGO_PATH))' \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
 		"VITE_GLOB_AUTH_API_URL=$(VITE_GLOB_AUTH_API_URL)"
 
 lint:
 	$(SCAFFOLD) lint scaffold.yml
 
-test: lint
+test: test-branding lint
 	SCAFFOLD="$(SCAFFOLD)" python3 scripts/test-template.py
 
 local:
@@ -92,6 +97,8 @@ local:
 	$(SCAFFOLD) new "$(CURDIR)" --output-dir="$$staging_dir" \
 		--run-hooks=always --no-prompt --preset="$(UI)" \
 		"Project=$$project" "ui=$(UI)" \
+		'brand_name=$(subst ','"'"',$(BRAND_NAME))' 'github_url=$(subst ','"'"',$(GITHUB_URL))' \
+		'logo_path=$(subst ','"'"',$(LOGO_PATH))' \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
 		"VITE_GLOB_AUTH_API_URL=$(VITE_GLOB_AUTH_API_URL)"; \
 	rsync -a --checksum --delete \
@@ -119,3 +126,7 @@ local:
 		fi; \
 	fi; \
 	test ! -e "$$target_dir/$$selected_ui"
+
+# Exercise real rendering with custom brands without touching local demos.
+test-branding:
+	SCAFFOLD="$(SCAFFOLD)" python3 scripts/test-branding.py

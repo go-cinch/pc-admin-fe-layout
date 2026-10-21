@@ -93,7 +93,7 @@ async function loadAndConvertEnv(
     .filter((item) => item === 'brotli' || item === 'gzip');
 
   return {
-    appTitle: getString(VITE_APP_TITLE, 'go cinch'),
+    appTitle: getString(VITE_APP_TITLE, '[[scaffold (fromJSON .Computed.brand).lower scaffold]]'),
     archiver: getBoolean(VITE_ARCHIVER),
     base: getString(VITE_BASE, '/'),
     compress: compressTypes.length > 0,

@@ -44,7 +44,7 @@ def assert_template_integrity(template, project):
             continue
         if relative.name == '.DS_Store' or relative.name.endswith(('.log', '.local')):
             continue
-        output = project / relative
+        output = project / str(relative).replace('{{ (fromJSON .Computed.brand).slug }}', 'go-cinch')
         data = source.read_bytes()
         # Scaffold intentionally drops truly empty source files.
         if not data:

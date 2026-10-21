@@ -141,7 +141,7 @@ export function useCatalogDraft() {
       const environment = `${location.origin}|${
         import.meta.env.VITE_GLOB_AUTH_API_URL ?? '/api/auth'
       }`;
-      const key = `go-cinch:catalog-draft:v1:${encodeURIComponent(
+      const key = `[[scaffold (fromJSON .Computed.brand).slug scaffold]]:catalog-draft:v1:${encodeURIComponent(
         `${environment}|${owner.value}|I18N_CATALOG`,
       )}`;
       try {

@@ -3,7 +3,7 @@
 PC routes `/audit/login` and `/audit/operation` are grouped under Audit / 审计.
 This implementation is independent; no scaffold-master code, styles or assets
 were imported. It uses Vben's shell, EchartsUI/useEcharts and ScrollArea, Ant
-Design Vue controls, and the shared Go Cinch management toolbar.
+Design Vue controls, and the shared [[scaffold (fromJSON .Computed.brand).title scaffold]] management toolbar.
 
 ## Data and scopes
 

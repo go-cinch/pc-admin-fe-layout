@@ -1,6 +1,6 @@
 # [[scaffold .Project scaffold]]
 
-Built with Vben Admin, Vue 3, and Ant Design Vue 4, integrated with Go-Cinch
+Built with Vben Admin, Vue 3, and Ant Design Vue 4, integrated with [[scaffold (fromJSON .Computed.brand).title scaffold]]
 chi-auth-layout.
 
 Run these commands from the generated project root:
@@ -29,7 +29,7 @@ For production, replace `auth-service:8080` in `scripts/deploy/nginx.conf` with
 your upstream service address. Keep the trailing `/` in `proxy_pass`.
 Build output is written to `apps/web-antd/dist`. Production
 `VITE_GLOB_API_URL` and `VITE_GLOB_AUTH_API_URL` default to
-`https://entry.go-cinch.top/api/auth`; rebuild after changing either value.
+`[[scaffold .Computed.production_auth_api_url scaffold]]`; rebuild after changing either value.
 
 Each backend service has its own client and base URL. Authentication uses the
 backend's default empty `auth.path`:

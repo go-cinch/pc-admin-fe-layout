@@ -42,6 +42,57 @@ make full PROJECT=my-admin \
   VITE_GLOB_AUTH_API_URL=https://auth.example.com
 ```
 
+## Vben Branding
+
+Use one brand name for both this Vben generator and `chi-auth-layout`:
+
+```bash
+make full PROJECT=project-admin UI=vben BRAND_NAME="this is my project"
+# Optional: copy a local logo and use your actual GitHub repository URL
+make full PROJECT=acme-admin UI=vben BRAND_NAME=acme \
+  LOGO_PATH="/absolute/path/my logo.png" \
+  GITHUB_URL=https://github.com/acme/admin
+```
+
+| Make variable | Scaffold argument | Default |
+| --- | --- | --- |
+| `BRAND_NAME` | `brand_name` | `go cinch` |
+| `GITHUB_URL` | `github_url` | `https://github.com/<brand-slug>/demos` |
+| `LOGO_PATH` | `logo_path` | Bundled light/dark logos |
+
+`this is my project` becomes `This Is My Project` in titles and login copy,
+`this is my project` in lowercase copy, and `this-is-my-project` in asset names,
+copyright names, and identifiers. `acme` becomes `Acme` / `acme` / `acme`.
+Names must start with an English letter and contain only English letters, digits,
+spaces, hyphens, or underscores; surrounding spaces and repeated separators are
+normalized. Project/package names remain controlled by `PROJECT`.
+
+This covers all three responsive login titles, HTML metadata, bundled locales,
+copyright, about/dashboard text, browser draft keys, logo references, and default
+test snapshots. GitHub links share `GITHUB_URL`; upstream Vben dependency metadata
+and licenses retain their attribution. Generated GitHub links are naming defaults;
+the generator does not create a repository.
+
+`LOGO_PATH` must be an absolute path to a readable, non-empty SVG, PNG, JPG, JPEG,
+WebP, GIF, or ICO file. The post-generation hook copies its original bytes to
+`<brand-slug>.<ext>`, `<brand-slug>-white.<ext>` and `<brand-slug>-favicon.<ext>`;
+a single supplied image is used for both themes and the favicon without recoloring.
+The original absolute path is not stored in the generated application. Direct
+Scaffold generation must use `--run-hooks=always` for copying and flattening.
+
+With a custom brand, omitted production API URLs default to `/api/auth` so the
+generated app uses your reverse proxy. The default `go cinch` brand retains the
+demo API URL. Explicit `VITE_GLOB_API_URL` and `VITE_GLOB_AUTH_API_URL` always win.
+Branding and local-logo customization currently apply to Vben only.
+
+`make local` preserves an existing Vben `.env`, including its title; use `make full`
+for a new branded project, or update an existing local `.env` deliberately. Auth's
+existing database dictionaries also require a separate update; changing generation
+parameters does not rewrite live data.
+
+Run `make test-branding` for real generation tests of names, links, copied SVG/PNG
+assets, invalid inputs, and old-brand residue. It does not modify local demos.
+
 By default, projects are generated in the parent directory of this repository.
 Use a fresh destination for each generation.
 
