@@ -125,7 +125,7 @@ local:
 		if [ "$$selected_ui" = 'shadcn-react' ]; then \
 			printf 'AUTH_PROXY_TARGET=%s\nPORT=%s\nNEXT_PUBLIC_APP_URL=http://localhost:%s\nNEXT_PUBLIC_SENTRY_DISABLED=true\n' '$(AUTH_PROXY_TARGET)' "$$local_port" "$$local_port" > "$$env_file"; \
 		else \
-			printf 'AUTH_PROXY_TARGET=%s\nVITE_PORT=%s\n' '$(AUTH_PROXY_TARGET)' "$$local_port" > "$$env_file"; \
+			printf 'AUTH_PROXY_TARGET=%s\nVITE_PORT=%s\n__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=preview-local.go-cinch.top\n' '$(AUTH_PROXY_TARGET)' "$$local_port" > "$$env_file"; \
 		fi; \
 	fi; \
 	test ! -e "$$target_dir/$$selected_ui"

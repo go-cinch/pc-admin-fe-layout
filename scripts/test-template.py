@@ -465,9 +465,9 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     validate_ant_h5(output / 'isolated-ant-h5')
     conflict = output / 'conflict-ant-h5'
     conflict.mkdir()
-    (conflict / 'package.json').write_text('existing ant mobile project')
+    (conflict / 'package.json').write_text('existing ant h5 project')
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
          '--no-prompt', '--overwrite', 'Project=conflict-ant-h5', 'ui=antd-h5'], success=False)
-    assert (conflict / 'package.json').read_text() == 'existing ant mobile project'
+    assert (conflict / 'package.json').read_text() == 'existing ant h5 project'
     assert not (conflict / 'src').exists()
     print('PASS Ant H5 artifacts and collision protection', flush=True)
