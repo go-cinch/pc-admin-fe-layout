@@ -38,6 +38,7 @@ declare global {
   };
 }
 
+const brandLabel = '[[scaffold (fromJSON .Computed.brand).lower scaffold]]';
 const projectGithubUrl = '[[scaffold .Computed.github_url_final scaffold]]';
 
 const renderLink = (href: string, text: string) =>
@@ -87,7 +88,7 @@ const vbenDescriptionItems: DescriptionItem[] = [
     title: 'Github',
   },
   {
-    content: renderLink(projectGithubUrl, '[[scaffold (fromJSON .Computed.brand).lower scaffold]]'),
+    content: renderLink(projectGithubUrl, brandLabel),
     title: '作者',
   },
 ];

@@ -3,6 +3,7 @@
 
 SCAFFOLD ?= scaffold
 BRAND_NAME ?= go cinch
+HIDE_UI_SUFFIX ?= false
 GITHUB_URL ?=
 LOGO_PATH ?=
 PROJECT ?= pc-admin
@@ -25,6 +26,7 @@ full:
 	$(SCAFFOLD) new "$(CURDIR)" --output-dir="$(OUTPUT_DIR)" \
 		--run-hooks=always --no-prompt --preset=full \
 		"Project=$(PROJECT)" "ui=$(UI)" \
+		'hide_ui_suffix=$(subst ','"'"',$(HIDE_UI_SUFFIX))' \
 		'brand_name=$(subst ','"'"',$(BRAND_NAME))' 'github_url=$(subst ','"'"',$(GITHUB_URL))' \
 		'logo_path=$(subst ','"'"',$(LOGO_PATH))' \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
@@ -33,7 +35,7 @@ full:
 lint:
 	$(SCAFFOLD) lint scaffold.yml
 
-test: test-branding lint
+test: test-agents test-branding lint
 	SCAFFOLD="$(SCAFFOLD)" python3 scripts/test-template.py
 
 local:
@@ -97,6 +99,7 @@ local:
 	$(SCAFFOLD) new "$(CURDIR)" --output-dir="$$staging_dir" \
 		--run-hooks=always --no-prompt --preset="$(UI)" \
 		"Project=$$project" "ui=$(UI)" \
+		'hide_ui_suffix=$(subst ','"'"',$(HIDE_UI_SUFFIX))' \
 		'brand_name=$(subst ','"'"',$(BRAND_NAME))' 'github_url=$(subst ','"'"',$(GITHUB_URL))' \
 		'logo_path=$(subst ','"'"',$(LOGO_PATH))' \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
@@ -133,3 +136,10 @@ local:
 # Exercise real rendering with custom brands without touching local demos.
 test-branding:
 	SCAFFOLD="$(SCAFFOLD)" python3 scripts/test-branding.py
+
+.PHONY: sync-agents test-agents
+sync-agents:
+	python3 scripts/sync-agents.py --demos-dir "$(DEMOS_DIR)"
+
+test-agents:
+	SCAFFOLD="$(SCAFFOLD)" python3 scripts/test-agents.py

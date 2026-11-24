@@ -30,7 +30,7 @@ const defaultPreferences: Preferences = {
     loginExpiredMode: 'page',
     name: '[[scaffold (fromJSON .Computed.brand).admin_title scaffold]]',
     preferencesButtonPosition: 'auto',
-    timezone: 'Asia/Shanghai',
+    timezone: '',
     watermark: false,
     watermarkContent: '',
     zIndex: 200,

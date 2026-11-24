@@ -24,6 +24,18 @@ if [ -n "$logo_path" ]; then
   fi
 fi
 
+# Scaffold renders this source link as a regular file containing the current
+# root AGENTS.md. No template checkout path is needed in the generated project.
+shared_agents="$project_dir/.shared-agents.md"
+if [ ! -s "$shared_agents" ]; then
+  printf 'Shared frontend rules are missing: %s\n' "$shared_agents" >&2
+  exit 1
+fi
+if [ -e "$project_dir/AGENTS.md" ] || [ -L "$project_dir/AGENTS.md" ]; then
+  printf 'Cannot initialize project: destination already exists: %s/AGENTS.md\n' "$project_dir" >&2
+  exit 1
+fi
+
 # Check every destination before moving anything, including hidden files.
 for source in "$ui_dir"/* "$ui_dir"/.[!.]* "$ui_dir"/..?*; do
   [ -e "$source" ] || [ -L "$source" ] || continue
@@ -40,6 +52,21 @@ for source in "$ui_dir"/* "$ui_dir"/.[!.]* "$ui_dir"/..?*; do
 done
 rmdir "$ui_dir"
 
+# Prefix shared rules, preserving the selected framework's instructions.
+agents_output=$(mktemp "$project_dir/.agents.XXXXXX")
+{
+  printf '<!-- BEGIN SHARED FRONTEND RULES -->\n\n'
+  cat "$shared_agents"
+  printf '\n<!-- END SHARED FRONTEND RULES -->\n'
+  if [ -f "$project_dir/AGENTS.md" ]; then
+    printf '\n'
+    cat "$project_dir/AGENTS.md"
+  fi
+} > "$agents_output"
+chmod 644 "$agents_output"
+mv "$agents_output" "$project_dir/AGENTS.md"
+rm "$shared_agents"
+
 if [ -n "$logo_path" ]; then
   public_dir="$project_dir/apps/web-antd/public"
   # Preserve the supplied bytes; a single image serves both themes and favicon.
@@ -49,4 +76,10 @@ if [ -n "$logo_path" ]; then
       rm "$public_dir/$brand_slug$suffix.svg"
     fi
   done
+  # Browsers that request /favicon.ico directly must not get the bundled brand.
+  if [ "$logo_ext" = '.ico' ]; then
+    cp "$logo_path" "$public_dir/favicon.ico"
+  else
+    rm -f "$public_dir/favicon.ico"
+  fi
 fi

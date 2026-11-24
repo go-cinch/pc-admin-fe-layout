@@ -27,6 +27,12 @@ questions:
       options: [vben-antd-vue3, tail-react, art-eleplus-vue3, shadcn-react, tdesign-vue3-h5, ant-design-h5]
       default: vben-antd-vue3
 
+  - name: hide_ui_suffix
+    when: '{{ or (eq .ui "vben-antd-vue3") (eq .ui "vben") }}'
+    prompt:
+      confirm: Omit the "by <UI>" suffix from the application title?
+      default: false
+
   - name: github_url
     prompt:
       message: Brand GitHub URL (leave empty for https://github.com/<brand>/demos)?
@@ -44,6 +50,12 @@ questions:
       message: Production auth API URL?
 
 computed:
+  hide_ui_suffix: >-
+    {{- $hide := toString (or .Scaffold.hide_ui_suffix "false") -}}
+    {{- if not (or (eq $hide "true") (eq $hide "false")) -}}
+    {{ template "hide_ui_suffix must be true or false" . }}
+    {{- end -}}
+    {{ $hide }}
   github_url_final: '{{ $url := or .Scaffold.github_url (printf "https://github.com/%s/demos" (replace " " "-" (toLower (regexReplaceAll "[ _-]+" (trim (or .Scaffold.brand_name "go cinch")) " ")))) }}{{ if not (regexMatch "^https?://[A-Za-z0-9._~:/?#@!&%+=,-]+$" $url) }}{{ template "github_url must be an HTTP or HTTPS URL without quotes, spaces or template expressions" . }}{{ end }}{{ $url }}'
   logo_ext: '{{ if and .Scaffold.logo_path (not (regexMatch "^/" .Scaffold.logo_path)) }}{{ template "logo_path must be an absolute path" . }}{{ end }}{{ $ext := (toLower (regexFind "(?i)\\.(svg|png|jpe?g|webp|gif|ico)$" (or .Scaffold.logo_path "logo.svg"))) }}{{ if not $ext }}{{ template "logo_path must end in svg, png, jpg, jpeg, webp, gif or ico" . }}{{ end }}{{ $ext }}'
   production_api_url: '{{ or .Scaffold.VITE_GLOB_API_URL (ternary "https://entry.go-cinch.top/api/auth" "/api/auth" (eq (replace " " "-" (toLower (regexReplaceAll "[ _-]+" (trim (or .Scaffold.brand_name "go cinch")) " "))) "go-cinch")) }}'

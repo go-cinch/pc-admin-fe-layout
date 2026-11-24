@@ -30,7 +30,16 @@ def run(args, success=True):
     return result
 
 
+def assert_shared_agents(project):
+    agents = (project / 'AGENTS.md').read_text()
+    prefix = '<!-- BEGIN SHARED FRONTEND RULES -->\n\n' + (LAYOUT / 'AGENTS.md').read_text() + '\n<!-- END SHARED FRONTEND RULES -->\n'
+    assert agents.startswith(prefix), 'generated shared rules differ from root AGENTS.md'
+    assert not (project / '.shared-agents.md').exists()
+    return prefix
+
+
 def assert_artifacts_excluded(project):
+    assert_shared_agents(project)
     for path in project.rglob('*'):
         assert path.name not in ARTIFACT_NAMES | {'.DS_Store'}
         assert not path.name.endswith(('.log', '.local'))
@@ -51,7 +60,9 @@ def assert_template_integrity(template, project):
         if not data:
             continue
         assert output.is_file(), relative
-        if b'[[scaffold' not in data:
+        if relative == Path('AGENTS.md'):
+            assert output.read_text() == assert_shared_agents(project) + '\n' + source.read_text()
+        elif b'[[scaffold' not in data:
             assert output.read_bytes() == data, relative
         else:
             assert b'[[scaffold' not in output.read_bytes(), relative
@@ -405,7 +416,7 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     run(['make', 'full', 'UI=invalid', f'OUTPUT_DIR={output}'], success=False)
     # Use an isolated copy to simulate a future UI and locally installed artifacts.
     staged = output / 'staged-layout'
-    shutil.copytree(LAYOUT, staged, ignore=shutil.ignore_patterns(
+    shutil.copytree(LAYOUT, staged, symlinks=True, ignore=shutil.ignore_patterns(
         '.git', 'node_modules', '.pnpm-store', '__pycache__'))
     staged_ui = staged / '{{ .Project }}' / 'vben-antd-vue3'
     for relative in ['node_modules/fake/index.js',
