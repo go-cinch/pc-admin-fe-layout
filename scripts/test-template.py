@@ -68,8 +68,8 @@ def assert_template_integrity(template, project):
             assert b'[[scaffold' not in output.read_bytes(), relative
 
 
-def validate_vben(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
-                  production_auth_api_url=DEFAULT_PRODUCTION_API_URL, *, login_animation_duration_ms=2000):
+def validate_vben(project_root, production_api_url='/api/auth',
+                  production_auth_api_url='/api/auth', *, login_animation_duration_ms=2000):
     project = project_root
     assert not (project / 'vben-antd-vue3').exists()
     assert not (project / 'vben').exists()

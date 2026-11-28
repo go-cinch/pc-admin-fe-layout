@@ -151,7 +151,12 @@ jobs:
       - name: Generate and incrementally sync admin frontend demo
         env:
           DEMO_PROJECT: ${{ matrix.name }}
-        run: make -C "$GITHUB_WORKSPACE/pc-admin-fe-layout" local DEMO="$DEMO_PROJECT"
+        run: |
+          if [ "$DEMO_PROJECT" = "vben-antd-vue3" ]; then
+            # Use Vben's same-origin defaults from scaffold.yml.
+            unset VITE_GLOB_API_URL VITE_GLOB_AUTH_API_URL
+          fi
+          make -C "$GITHUB_WORKSPACE/pc-admin-fe-layout" local DEMO="$DEMO_PROJECT"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

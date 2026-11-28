@@ -108,9 +108,9 @@ brand favicon and omit the bundled ICO.
 The original absolute path is not stored in the generated application. Direct
 Scaffold generation must use `--run-hooks=always` for copying and flattening.
 
-With a custom brand, omitted production API URLs default to `/api/auth` so the
-generated app uses your reverse proxy. The default `go cinch` brand retains the
-demo API URL. Explicit `VITE_GLOB_API_URL` and `VITE_GLOB_AUTH_API_URL` always win.
+Vben defaults both production API URLs to `/api/auth` for every brand.
+Route that path to Auth on the frontend's origin. Explicit `VITE_GLOB_API_URL`
+and `VITE_GLOB_AUTH_API_URL` override the defaults.
 Branding and local-logo customization currently apply to Vben only.
 
 `make local` preserves an existing Vben `.env`, including its title; use `make full`

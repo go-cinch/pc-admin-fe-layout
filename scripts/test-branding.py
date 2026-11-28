@@ -66,8 +66,7 @@ def validate(project, title, lower, slug, extension='.svg', logo=None, github=No
         assert fallback_icon.is_file()
     assert f'{slug}-white{extension}' in (app / 'src/app.vue').read_text()
     assert f'{slug}{extension}' in preferences
-    expected_api = 'https://entry.go-cinch.top/api/auth' if slug == 'go-cinch' else '/api/auth'
-    assert f'VITE_GLOB_AUTH_API_URL={expected_api}\n' in (app / '.env.production').read_text()
+    assert 'VITE_GLOB_AUTH_API_URL=/api/auth\n' in (app / '.env.production').read_text()
     for path in project.rglob('*'):
         assert '{{' not in str(path.relative_to(project)), path
         relative = str(path.relative_to(project))

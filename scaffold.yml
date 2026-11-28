@@ -73,8 +73,8 @@ computed:
     {{ $hide }}
   github_url_final: '{{ $url := or .Scaffold.github_url (printf "https://github.com/%s/demos" (replace " " "-" (toLower (regexReplaceAll "[ _-]+" (trim (or .Scaffold.brand_name "go cinch")) " ")))) }}{{ if not (regexMatch "^https?://[A-Za-z0-9._~:/?#@!&%+=,-]+$" $url) }}{{ template "github_url must be an HTTP or HTTPS URL without quotes, spaces or template expressions" . }}{{ end }}{{ $url }}'
   logo_ext: '{{ if and .Scaffold.logo_path (not (regexMatch "^/" .Scaffold.logo_path)) }}{{ template "logo_path must be an absolute path" . }}{{ end }}{{ $ext := (toLower (regexFind "(?i)\\.(svg|png|jpe?g|webp|gif|ico)$" (or .Scaffold.logo_path "logo.svg"))) }}{{ if not $ext }}{{ template "logo_path must end in svg, png, jpg, jpeg, webp, gif or ico" . }}{{ end }}{{ $ext }}'
-  production_api_url: '{{ or .Scaffold.VITE_GLOB_API_URL (ternary "https://entry.go-cinch.top/api/auth" "/api/auth" (eq (replace " " "-" (toLower (regexReplaceAll "[ _-]+" (trim (or .Scaffold.brand_name "go cinch")) " "))) "go-cinch")) }}'
-  production_auth_api_url: '{{ or .Scaffold.VITE_GLOB_AUTH_API_URL (ternary "https://entry.go-cinch.top/api/auth" "/api/auth" (eq (replace " " "-" (toLower (regexReplaceAll "[ _-]+" (trim (or .Scaffold.brand_name "go cinch")) " "))) "go-cinch")) }}'
+  production_api_url: '{{ or .Scaffold.VITE_GLOB_API_URL "/api/auth" }}'
+  production_auth_api_url: '{{ or .Scaffold.VITE_GLOB_AUTH_API_URL "/api/auth" }}'
   # JSON preserves string names such as "true"; Scaffold coerces scalar computed values.
   brand: '{{ $raw := trim (or .Scaffold.brand_name "go cinch") }}{{ if not (regexMatch "^[A-Za-z][A-Za-z0-9]*([ _-]+[A-Za-z0-9]+)*$" $raw) }}{{ template "brand_name must start with a letter and contain only English letters, digits, spaces, underscores or hyphens" . }}{{ end }}{{ $lower := toLower (regexReplaceAll "[ _-]+" $raw " ") }}{{ dict "title" (toTitleCase $lower) "admin_title" (printf "%s Admin" (toTitleCase $lower)) "lower" $lower "slug" (replace " " "-" $lower) | toJSON }}'
   # Native template errors reject invalid CLI values before writing any files.
