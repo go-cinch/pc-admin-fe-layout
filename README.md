@@ -42,6 +42,21 @@ make full PROJECT=my-admin \
   VITE_GLOB_AUTH_API_URL=https://auth.example.com
 ```
 
+## Vben login animation
+
+`LOGIN_ANIMATION_DURATION_MS` controls the time budget for the sailing animation
+after a successful login. The default is `2000` milliseconds. Set it to `0` to
+keep the illustration static and continue immediately, or use a positive integer
+such as `500` for a shorter animation.
+
+```bash
+make full PROJECT=e2e-admin UI=vben LOGIN_ANIMATION_DURATION_MS=0
+make local DEMO=vben-antd-vue3 LOGIN_ANIMATION_DURATION_MS=0
+```
+
+Direct Scaffold commands accept `login_animation_duration_ms=0`. Build and deploy
+the generated frontend at the URL used by the E2E suite.
+
 ## Vben Branding
 
 Use one brand name for both this Vben generator and `chi-auth-layout`:

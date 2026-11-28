@@ -33,6 +33,12 @@ questions:
       confirm: Omit the "by <UI>" suffix from the application title?
       default: false
 
+  - name: login_animation_duration_ms
+    when: '{{ or (eq .ui "vben-antd-vue3") (eq .ui "vben") }}'
+    prompt:
+      message: Login animation duration in milliseconds (0 disables it)?
+      default: "2000"
+
   - name: github_url
     prompt:
       message: Brand GitHub URL (leave empty for https://github.com/<brand>/demos)?
@@ -50,6 +56,15 @@ questions:
       message: Production auth API URL?
 
 computed:
+  login_animation_duration_ms: >-
+    {{- $ms := "2000" -}}
+    {{- if ne .Scaffold.login_animation_duration_ms nil -}}
+    {{- $ms = trim (toString .Scaffold.login_animation_duration_ms) -}}
+    {{- end -}}
+    {{- if or (not (regexMatch "^(0|[1-9][0-9]{0,9})$" $ms)) (gt (toInt $ms) 2147483647) -}}
+    {{ template "login_animation_duration_ms must be an integer between 0 and 2147483647" . }}
+    {{- end -}}
+    {{ $ms }}
   hide_ui_suffix: >-
     {{- $hide := toString (or .Scaffold.hide_ui_suffix "false") -}}
     {{- if not (or (eq $hide "true") (eq $hide "false")) -}}

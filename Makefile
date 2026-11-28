@@ -4,6 +4,7 @@
 SCAFFOLD ?= scaffold
 BRAND_NAME ?= go cinch
 HIDE_UI_SUFFIX ?= false
+LOGIN_ANIMATION_DURATION_MS ?= 2000
 GITHUB_URL ?=
 LOGO_PATH ?=
 PROJECT ?= pc-admin
@@ -27,6 +28,7 @@ full:
 		--run-hooks=always --no-prompt --preset=full \
 		"Project=$(PROJECT)" "ui=$(UI)" \
 		'hide_ui_suffix=$(subst ','"'"',$(HIDE_UI_SUFFIX))' \
+		'login_animation_duration_ms=$(subst ','"'"',$(LOGIN_ANIMATION_DURATION_MS))' \
 		'brand_name=$(subst ','"'"',$(BRAND_NAME))' 'github_url=$(subst ','"'"',$(GITHUB_URL))' \
 		'logo_path=$(subst ','"'"',$(LOGO_PATH))' \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \
@@ -100,6 +102,7 @@ local:
 		--run-hooks=always --no-prompt --preset="$(UI)" \
 		"Project=$$project" "ui=$(UI)" \
 		'hide_ui_suffix=$(subst ','"'"',$(HIDE_UI_SUFFIX))' \
+		'login_animation_duration_ms=$(subst ','"'"',$(LOGIN_ANIMATION_DURATION_MS))' \
 		'brand_name=$(subst ','"'"',$(BRAND_NAME))' 'github_url=$(subst ','"'"',$(GITHUB_URL))' \
 		'logo_path=$(subst ','"'"',$(LOGO_PATH))' \
 		"VITE_GLOB_API_URL=$(VITE_GLOB_API_URL)" \

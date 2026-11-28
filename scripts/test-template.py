@@ -69,7 +69,7 @@ def assert_template_integrity(template, project):
 
 
 def validate_vben(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
-                  production_auth_api_url=DEFAULT_PRODUCTION_API_URL):
+                  production_auth_api_url=DEFAULT_PRODUCTION_API_URL, *, login_animation_duration_ms=2000):
     project = project_root
     assert not (project / 'vben-antd-vue3').exists()
     assert not (project / 'vben').exists()
@@ -80,6 +80,8 @@ def validate_vben(project_root, production_api_url=DEFAULT_PRODUCTION_API_URL,
     assert sorted(p.name for p in (project / 'apps').iterdir()) == ['web-antd']
     assert not any((project / x).exists() for x in ['node_modules', '.git', 'docs', 'playground'])
     assert_artifacts_excluded(project)
+    auth_layout = (project / 'apps/web-antd/src/layouts/auth.vue').read_text()
+    assert re.search(rf"Number\(\s*'{login_animation_duration_ms}',?\s*\)", auth_layout)
     env = (project / 'apps/web-antd/.env').read_text()
     assert f'VITE_APP_NAMESPACE={project_root.name}\n' in env
     key = env.split('VITE_APP_STORE_SECURE_KEY=')[1].splitlines()[0]
@@ -285,13 +287,20 @@ with tempfile.TemporaryDirectory(prefix='pc-admin-layout-test-') as temp:
     custom_api_url = 'https://api.example.com/main'
     custom_auth_api_url = 'https://api.example.com/auth'
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}',
-         '--run-hooks=always', '--no-prompt', 'Project=custom-production-urls',
+         '--run-hooks=always', '--no-prompt', 'Project=custom-production-urls', 'login_animation_duration_ms=500',
          f'VITE_GLOB_API_URL={custom_api_url}',
          f'VITE_GLOB_AUTH_API_URL={custom_auth_api_url}'])
-    validate_vben(output / 'custom-production-urls', custom_api_url, custom_auth_api_url)
+    validate_vben(output / 'custom-production-urls', custom_api_url, custom_auth_api_url,
+                  login_animation_duration_ms=500)
     print('PASS custom production API URLs', flush=True)
-    run(['make', 'full', 'PROJECT=make-ui', 'UI=vben', f'OUTPUT_DIR={output}', f'SCAFFOLD={SCAFFOLD}'])
-    validate_vben(output / 'make-ui')
+    run(['make', 'full', 'PROJECT=make-ui', 'UI=vben', 'LOGIN_ANIMATION_DURATION_MS=0',
+         f'OUTPUT_DIR={output}', f'SCAFFOLD={SCAFFOLD}'])
+    validate_vben(output / 'make-ui', login_animation_duration_ms=0)
+    for invalid_ms in ['-1', '0.5', 'off', '2147483648']:
+        result = run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--no-prompt',
+                      'Project=invalid-duration', f'login_animation_duration_ms={invalid_ms}'], success=False)
+        assert 'login_animation_duration_ms' in result.stdout + result.stderr
+        assert not (output / 'invalid-duration').exists()
     run([SCAFFOLD, 'new', str(LAYOUT), f'--output-dir={output}', '--run-hooks=always',
          '--no-prompt', 'Project=hooks-ui'])
     validate_vben(output / 'hooks-ui')
